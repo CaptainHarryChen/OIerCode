@@ -1,55 +1,65 @@
 #include<cstdio>
+#include<cmath>
 #include<algorithm>
 using namespace std;
-#define MAXN 10000005
-int prime[MAXN],tot,ind[MAXN];
-bool not_prime[MAXN];
-long long pmin[MAXN],sum[MAXN];
-int main()
+const int MAXN=10000005;
+int cnt[MAXN],prime[670000],pcnt;
+long long po[MAXN],sum[MAXN];
+bool nprime[MAXN];
+void Init()
 {
+	nprime[1]=1;
+	cnt[1]=0;
 	for(int i=2;i<MAXN;i++)
 	{
-		if(!not_prime[i])
+		if(!nprime[i])
 		{
-			prime[++tot]=i;
-			ind[i]=1;
-			pmin[i]=i;
+			prime[++pcnt]=i;
+			cnt[i]=1;
+			po[i]=i;
 			sum[i]=1;
 		}
-		for(int j=1;j<=tot&&i*prime[j]<MAXN;j++)
+		for(int j=1;j<=pcnt&&i*prime[j]<MAXN;j++)
 		{
-			not_prime[i*prime[j]]=1;
+			nprime[i*prime[j]]=1;
 			if(i%prime[j]==0)
 			{
-				ind[i*prime[j]]=ind[i]+1;
-				pmin[i*prime[j]]=pmin[i]*prime[j];
-				int t=i/pmin[i];
-				if(t==1)
+				cnt[i*prime[j]]=cnt[i]+1;
+				po[i*prime[j]]=po[i]*prime[j];
+				int temp=i*prime[j]/po[i*prime[j]];
+				if(temp==1)
 					sum[i*prime[j]]=1;
-				else
-					sum[i*prime[j]]=(ind[t]==ind[i*prime[j]])?-sum[t]:0;
+				else if(cnt[temp]==cnt[i*prime[j]])
+					sum[i*prime[j]]=-sum[temp];
 				break;
 			}
-			pmin[i*prime[j]]=prime[j];
-			ind[i*prime[j]]=1;
-			sum[i*prime[j]]=(ind[i]==1)?-sum[i]:0;
+			po[i*prime[j]]=prime[j];
+			cnt[i*prime[j]]=1;
+			if(cnt[i*prime[j]]==cnt[i])
+				sum[i*prime[j]]=-sum[i];
 		}
 	}
 	for(int i=1;i<MAXN;i++)
 		sum[i]+=sum[i-1];
-	int cas,a,b;
-	for(scanf("%d",&cas);cas;cas--)
+}
+int main()
+{
+	Init();
+	int n,a,b;
+	scanf("%d",&n);
+	while(n--)
 	{
 		scanf("%d%d",&a,&b);
-		if(a>b)swap(a,b);
-		int last=0;
 		long long ans=0;
+		if(a>b)
+			swap(a,b);
+		int last;
 		for(int i=1;i<=a;i=last+1)
 		{
 			last=min(a/(a/i),b/(b/i));
-			ans+=1LL*(a/i)*(b/i)*(sum[last]-sum[i-1]);
+			ans+=1LL*(sum[last]-sum[i-1])*(a/i)*(b/i);
 		}
-		printf("%I64d\n",ans);
+		printf("%lld\n",ans);
 	}
 	return 0;
 }
