@@ -1,56 +1,93 @@
 #include<cstdio>
 #include<cstring>
 #include<algorithm>
-#include<set>
-#define MAXN 202
-#define MAXW 6010
 using namespace std;
-int N,W,fa[MAXN];
-struct edge
+const int MAXN=205,MAXW=6005;
+struct Edge
 {
-	int x,y,v;
-	bool operator<(edge t)const
-	{return v<t.v||(v==t.v&&(x<t.x||(x==t.x&&y<t.y)));}
-}E[MAXW];
-int root(int u)
-{if(u==fa[u])return u;return fa[u]=root(fa[u]);}
+	int u,v,val;
+};
+Edge E[MAXW];
+int fa[MAXN],id[MAXN],dep[MAXN];
+bool vis[MAXN];
+int LCA(int a,int b)
+{
+	memset(vis,0,sizeof vis);
+	do
+	{
+		vis[a]=1;
+		a=fa[a];
+	}while(a!=-1);
+	while(b!=-1&&!vis[b])
+		b=fa[b];
+	return b;
+}
+void Rev(int a,int son,int i)
+{
+	int b=fa[a],ii=id[a];
+	fa[a]=son;
+	id[a]=i;
+	dep[a]=dep[son]+1;
+	if(b==-1)
+		return;
+	Rev(b,a,ii);
+}
+int getmax(int u,int r)
+{
+	if(u==r)
+		return 0;
+	int t=getmax(fa[u],r);
+	if(E[id[u]].val>E[id[t]].val)
+		return u;
+	return t;
+}
 int main()
 {
+	int N,W,lca,u,v,ans=0,cnt=0;
 	scanf("%d%d",&N,&W);
+	for(int i=1;i<=N;i++)
+	{
+		fa[i]=-1;
+		dep[i]=1;
+	}
 	for(int i=1;i<=W;i++)
 	{
-		edge t;
-		scanf("%d%d%d",&t.x,&t.y,&t.v);
-		int x;
-		for(x=1;x<i;x++)
-            if(E[x].v>t.v)
-			{
-                for(int k=i;k>x;k--)
-                    E[k]=E[k-1];
-                break;
-            }
-		E[x]=t;
-		if(i<N-1)
-		{printf("-1\n");continue;}
-		for(int j=1;j<=N;j++)
-			fa[j]=j;
-		int ans=0,r1,r2;
-		for(int j=1,k=0;j<N;j++)
+		scanf("%d%d%d",&E[i].u,&E[i].v,&E[i].val);
+		u=E[i].u,v=E[i].v;
+		lca=LCA(u,v);
+		if(lca==-1)
 		{
-			for(k++;k<=i;k++)
-			{
-				r1=root(E[k].x),r2=root(E[k].y);
-				if(r1!=r2)
-				{
-					fa[r1]=r2;
-					ans+=E[k].v;
-					break;
-				}
-			}
-			if(k>i)
-			{ans=-1;break;}
+			Rev(u,v,i);
+			ans+=E[i].val;
+			cnt++;
 		}
-		printf("%d\n",ans);
+		else
+		{
+			int a=getmax(u,lca);
+			int b=getmax(v,lca);
+			if(E[id[a]].val<=E[i].val&&E[id[b]].val<=E[i].val)
+			{
+				if(cnt==N-1)
+					printf("%d\n",ans);
+				else
+					printf("-1\n");
+				continue;
+			}
+			int c,d,e;
+			if(E[id[a]].val>E[id[b]].val)
+				c=u,d=v,e=a;
+			else
+				c=v,d=u,e=b;
+			ans-=E[id[e]].val;
+			ans+=E[i].val;
+			fa[e]=-1;
+			id[e]=0;
+			Rev(c,d,i);
+		}
+		if(cnt==N-1)
+			printf("%d\n",ans);
+		else
+			printf("-1\n");
 	}
 	return 0;
 }
