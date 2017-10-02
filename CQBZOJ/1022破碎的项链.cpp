@@ -7,6 +7,17 @@
 using namespace std;
 char s[MAXN];
 int n,r[MAXN],l[MAXN];
+void debug()
+{
+	printf("---------------------debug-----------------------\n");
+	for(int i=1;i<=n;i++)
+		printf("%d",l[i]);
+	printf("\n");
+	for(int i=1;i<=n;i++)
+		printf("%d",r[i]);
+	printf("\n");
+	printf("---------------------debug-----------------------\n");
+}
 int main()
 {
 	scanf("%d%s",&n,s+1);
@@ -44,6 +55,7 @@ int main()
 		i=x;
 		if(i==0)i=j;
 	}
+	//debug();
 	int maxs=0,sum;
 	for(int i=1;i<=n;i++)
 	{

@@ -10,7 +10,7 @@ int main()
 	while(F--)
 	{
 		scanf("%d%d%d",&N,&M,&W);
-		memset(dis,0x3f3f3f3f,sizeof dis);
+		memset(dis,0x3f,sizeof dis);
 		for(int i=1;i<=N;i++)
 			dis[i][i]=0;
 		for(int i=1;i<=M;i++)

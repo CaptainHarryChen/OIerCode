@@ -1,56 +1,38 @@
 #include<cstdio>
-#include<iostream>
 #include<cstring>
+#include<algorithm>
 using namespace std;
-int n,s=99999999,cnt;
-struct node
+const int MAXN=105;
+int val[MAXN],son[MAXN][2],fa[MAXN];
+int ans=0x7FFFFFFF,sum;
+bool vis[MAXN];
+void dfs(int u,int lev=0)
 {
-	int v,lch,rch,fa;
-	node(){v=lch=rch=0;}
-}arr[105];
-bool f[105];
-int dfs(int k)
-{
-	int ss=0;
-	f[k]=1;
-	if(arr[k].lch&&!f[arr[k].lch-1])
-	{
-		cnt++;
-		ss=ss+cnt*arr[arr[k].lch-1].v+dfs(arr[k].lch-1);
-		cnt--;
-	}
-	if(arr[k].rch&&!f[arr[k].rch-1])
-	{
-		cnt++;
-		ss=ss+cnt*arr[arr[k].rch-1].v+dfs(arr[k].rch-1);
-		cnt--;
-	}
-	if(arr[k].fa&&!f[arr[k].fa-1])
-	{
-		cnt++;
-		ss=ss+cnt*arr[arr[k].fa-1].v+dfs(arr[k].fa-1);
-		cnt--;
-	}
-	f[k]=0;
-	return ss;
+	if(u==0||vis[u])return;
+	vis[u]=true;
+	if(sum>=ans)return;
+	sum+=lev*val[u];
+	dfs(son[u][0],lev+1);
+	dfs(son[u][1],lev+1);
+	dfs(fa[u],lev+1);
 }
 int main()
 {
-	cin>>n;
-	for(int i=0;i<n;i++)
+	int n;
+	scanf("%d",&n);
+	for(int i=1;i<=n;i++)
 	{
-		scanf("%d%d%d",&arr[i].v,&arr[i].lch,&arr[i].rch);
-		arr[arr[i].lch-1].fa=i+1;
-		arr[arr[i].rch-1].fa=i+1;
+		scanf("%d%d%d",val+i,son[i],son[i]+1);
+		fa[son[i][0]]=i;
+		fa[son[i][1]]=i;
 	}
-	for(int i=0;i<n;i++)
+	for(int i=1;i<=n;i++)
 	{
-		cnt=0;
-		memset(f,0,sizeof(f));
-		int ss=dfs(i);
-		if(ss<s)
-			s=ss;
+		memset(vis,0,sizeof vis);
+		sum=0;
+		dfs(i);
+		ans=min(ans,sum);
 	}
-	printf("%d\n",s);
+	printf("%d\n",ans);
 	return 0;
 }

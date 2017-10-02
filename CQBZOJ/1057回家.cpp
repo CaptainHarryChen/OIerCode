@@ -1,42 +1,70 @@
 #include<cstdio>
-#include<iostream>
 #include<cstring>
+#include<queue>
 using namespace std;
-#define MAXN 200
-int P,dis[MAXN],E[MAXN][MAXN];
-bool used[MAXN];
+const int MAXN=100,MAXM=10005;
+typedef pair<int,int> State;
+struct Edge
+{
+	int v,val;
+	Edge *next;
+};
+struct Graph
+{
+	Edge E[MAXM*2],*V[MAXN],*cur;
+	Graph(){clear();}
+	void clear(){cur=E;}
+	void add_edge(int a,int b,int c)
+	{
+		cur->v=b;cur->val=c;
+		cur->next=V[a];
+		V[a]=cur++;
+		cur->v=a;cur->val=c;
+		cur->next=V[b];
+		V[b]=cur++;
+	}
+};
+Graph G;
+int dis[MAXN];
+priority_queue<State>Q;
+void Dijkstra()
+{
+	memset(dis,0x3F,sizeof dis);
+	dis['Z'-'A']=0;
+	Q.push(State(0,'Z'-'A'));
+	State t;
+	while(!Q.empty())
+	{
+		t=Q.top();
+		Q.pop();
+		if(t.first>dis[t.second])
+			continue;
+		for(Edge *p=G.V[t.second];p;p=p->next)
+			if(dis[p->v]>t.first+p->val)
+			{
+				dis[p->v]=t.first+p->val;
+				Q.push(State(dis[p->v],p->v));
+			}
+	}
+}
 int main()
 {
-	scanf("%d",&P);
-	for(int i=1;i<MAXN;i++)
-		for(int j=1;j<MAXN;j++)
-			E[i][j]=0x3FFFFFFF;
-	for(int i=1;i<=P;i++)
+	int m,val;
+	char u[3],v[3];
+	scanf("%d",&m);
+	for(int i=1;i<=m;i++)
 	{
-		char x[2],y[2];
-		int v;
-		scanf("%s %s %d",x,y,&v);
-		E[(int)x[0]][(int)y[0]]=min(E[(int)x[0]][(int)y[0]],v);
-		E[(int)y[0]][(int)x[0]]=min(E[(int)y[0]][(int)x[0]],v);
+		scanf("%s%s%d",u,v,&val);
+		G.add_edge(u[0]-'A',v[0]-'A',val);
 	}
-	for(int i=1;i<MAXN;i++)
-		dis[i]=0x3FFFFFFF;
-	dis['Z']=0;
-	for(int i=1;i<=MAXN;i++)
-	{
-		int mind=0x7FFFFFFF,k;
-		for(int j=1;j<MAXN;j++)
-			if(!used[j]&&mind>dis[j])
-			{mind=dis[j];k=j;}
-		used[k]=1;
-		for(int j=1;j<MAXN;j++)
-			if(dis[j]>dis[k]+E[k][j])
-				dis[j]=dis[k]+E[k][j];
-	}
-	int minc=0x7FFFFFFF,kk;
-	for(int i='A';i<'Z';i++)
-		if(minc>dis[i])
-			{minc=dis[i];kk=i;}
-	printf("%c %d\n",kk,dis[kk]);
+	Dijkstra();
+	int mint=0x3F3F3F3F,fast;
+	for(int i=0;i<25;i++)
+		if(dis[i]<mint)
+		{
+			mint=dis[i];
+			fast=i;
+		}
+	printf("%c %d\n",'A'+fast,mint);
 	return 0;
 }
