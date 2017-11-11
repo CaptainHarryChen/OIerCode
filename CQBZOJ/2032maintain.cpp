@@ -2,92 +2,99 @@
 #include<cstring>
 #include<algorithm>
 using namespace std;
-const int MAXN=205,MAXW=6005;
+const int MAXN=205,MAXM=6005;
+
 struct Edge
 {
-	int u,v,val;
+	int u,v,w;
+	Edge(){}
+	Edge(int _u,int _v,int _w)
+	{u=_u;v=_v;w=_w;}
 };
-Edge E[MAXW];
-int fa[MAXN],id[MAXN],dep[MAXN];
-bool vis[MAXN];
-int LCA(int a,int b)
+Edge E[MAXM];
+struct Tree
 {
-	memset(vis,0,sizeof vis);
-	do
+	int fa[MAXN],id[MAXN];
+	bool vis[MAXN];
+	int LCA(int a,int b)
 	{
-		vis[a]=1;
-		a=fa[a];
-	}while(a!=-1);
-	while(b!=-1&&!vis[b])
-		b=fa[b];
-	return b;
-}
-void Rev(int a,int son,int i)
-{
-	int b=fa[a],ii=id[a];
-	fa[a]=son;
-	id[a]=i;
-	dep[a]=dep[son]+1;
-	if(b==-1)
-		return;
-	Rev(b,a,ii);
-}
-int getmax(int u,int r)
-{
-	if(u==r)
-		return 0;
-	int t=getmax(fa[u],r);
-	if(E[id[u]].val>E[id[t]].val)
-		return u;
-	return t;
-}
+		memset(vis,0,sizeof vis);
+		while(a)
+		{
+			vis[a]=true;
+			a=fa[a];
+		}
+		while(b&&vis[b]==false)
+			b=fa[b];
+		return b;
+	}
+	int Max(int u,int ed)
+	{
+		int mx=-1,res=0;
+		while(u&&u!=ed)
+		{
+			if(mx<E[id[u]].w)
+			{
+				mx=E[id[u]].w;
+				res=u;
+			}
+			u=fa[u];
+		}
+		return res;
+	}
+	void Rev(int u,int v,int i)
+	{
+		int f,fi;
+		while(u)
+		{
+			f=fa[u];
+			fi=id[u];
+			fa[u]=v;
+			id[u]=i;
+			v=u;
+			u=f;
+			i=fi;
+		}
+	}
+};
+
+Tree T;
 int main()
 {
-	int N,W,lca,u,v,ans=0,cnt=0;
-	scanf("%d%d",&N,&W);
-	for(int i=1;i<=N;i++)
+	int n,m,u,v,w,cnt=0,ans=0;
+	scanf("%d%d",&n,&m);
+	for(int i=1;i<=m;i++)
 	{
-		fa[i]=-1;
-		dep[i]=1;
-	}
-	for(int i=1;i<=W;i++)
-	{
-		scanf("%d%d%d",&E[i].u,&E[i].v,&E[i].val);
-		u=E[i].u,v=E[i].v;
-		lca=LCA(u,v);
-		if(lca==-1)
+		scanf("%d%d%d",&u,&v,&w);
+		E[i]=Edge(u,v,w);
+		int l=T.LCA(u,v);
+		if(l)
 		{
-			Rev(u,v,i);
-			ans+=E[i].val;
-			cnt++;
-		}
-		else
-		{
-			int a=getmax(u,lca);
-			int b=getmax(v,lca);
-			if(E[id[a]].val<=E[i].val&&E[id[b]].val<=E[i].val)
+			int a=T.Max(u,l),b=T.Max(v,l);
+			int ai=T.id[a],bi=T.id[b];
+			if(E[ai].w<E[bi].w)
 			{
-				if(cnt==N-1)
-					printf("%d\n",ans);
-				else
-					printf("-1\n");
-				continue;
+				swap(ai,bi);
+				swap(a,b);
+				swap(u,v);
 			}
-			int c,d,e;
-			if(E[id[a]].val>E[id[b]].val)
-				c=u,d=v,e=a;
-			else
-				c=v,d=u,e=b;
-			ans-=E[id[e]].val;
-			ans+=E[i].val;
-			fa[e]=-1;
-			id[e]=0;
-			Rev(c,d,i);
+			if(E[ai].w>w)
+			{
+				T.fa[a]=T.id[a]=0;
+				T.Rev(u,v,i);
+				ans=ans-E[ai].w+w;
+			}
 		}
-		if(cnt==N-1)
-			printf("%d\n",ans);
 		else
-			printf("-1\n");
+		{
+			T.Rev(u,v,i);
+			cnt++;
+			ans+=w;
+		}
+		if(cnt<n-1)
+			puts("-1");
+		else
+			printf("%d\n",ans);
 	}
 	return 0;
 }
