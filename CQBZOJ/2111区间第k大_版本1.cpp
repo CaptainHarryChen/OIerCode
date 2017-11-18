@@ -1,67 +1,74 @@
 #include<cstdio>
-#include<iostream>
-#include<cstring>
 #include<algorithm>
-#include<map>
-#define MAXN 100100
 using namespace std;
-map<int,int>Map;
-int N,M,num[MAXN],map1[MAXN];
-struct TREE
+const int MAXN=100005;
+
+int n;
+
+struct Node
 {
-	int cnt;
-	TREE *lch,*rch;
-	TREE(){cnt=0;lch=rch=NULL;}
-	TREE(int L,int R){cnt=R-L+1;lch=rch=NULL;}
-}*root[MAXN];
-void build_tree(TREE *&p,int L,int R)
+	int sum;
+	Node *lch,*rch;
+};
+
+int opcnt;
+Node nodes[MAXN*20],*cur,*null;
+Node *rt[MAXN];
+void Init()
 {
-	p=new TREE(L,R);
-	if(L==R)return;
-	int mid=(L+R)>>1;
-	build_tree(p->lch,L,mid);
-	build_tree(p->rch,mid+1,R);
+    cur=nodes+1;
+    nodes[0].sum=0;
+    null=nodes;
+    nodes[0].lch=nodes[0].rch=null;
+    opcnt=0;
+    for(int i=0;i<=n;i++)
+        rt[i]=null;
 }
-void insert(TREE *&u,TREE *v,int L,int R,int x)
+void Add(Node *&now,int pos,int val,int l=1,int r=n)
 {
-	u=new TREE;
-	*u=*v;
-	u->cnt++;
-	if(L==R)return;
-	int mid=(L+R)>>1;
-	if(x<=mid)insert(u->lch,v->lch,L,mid,x);
-	else insert(u->rch,v->rch,mid+1,R,x);
+    *cur=*now;
+    now=cur++;
+    now->sum+=val;
+    if(l==r)return;
+    int mid=(l+r)/2;
+    if(pos<=mid)
+        Add(now->lch,pos,val,l,mid);
+    else
+        Add(now->rch,pos,val,mid+1,r);
 }
-int solve(TREE *u,TREE *v,int L,int R,int k)
+int Query(Node *lnode,Node *rnode,int rk,int l=1,int r=n)
 {
-	if(L==R)return L;
-	int c=(u->lch->cnt)-(v->lch->cnt),mid=(L+R)>>1;
-	if(k<=c)
-		return solve(u->lch,v->lch,L,mid,k);
-	else
-		return solve(u->rch,v->rch,mid+1,R,k-c);
+    if(l==r)
+        return l;
+    int midrank=(rnode->lch->sum-lnode->lch->sum);
+    int mid=(l+r)/2;
+    if(rk<=midrank)
+        return Query(lnode->lch,rnode->lch,rk,l,mid);
+    return Query(lnode->rch,rnode->rch,rk-midrank,mid+1,r);
 }
+
+int A[MAXN],mp[MAXN];
 int main()
 {
-	scanf("%d%d",&N,&M);
-	for(int i=1;i<=N;i++)
-		scanf("%d",&num[i]);
-	memcpy(map1,num,sizeof map1);
-	sort(map1+1,map1+N+1);
-	for(int i=1;i<=N;i++)
-		Map[map1[i]]=i;
-	build_tree(root[0],1,N);
-	for(int i=1;i<=N;i++)
+	int m;
+	scanf("%d%d",&n,&m);
+	for(int i=1;i<=n;i++)
 	{
-		int x=Map[num[i]];
-		insert(root[i],root[i-1],1,N,x);
+		scanf("%d",A+i);
+		mp[i]=A[i];
+	}
+	sort(mp+1,mp+n+1);
+	Init();
+	for(int i=1;i<=n;i++)
+	{
+		rt[i]=rt[i-1];
+		Add(rt[i],lower_bound(mp+1,mp+n+1,A[i])-mp,1);
 	}
 	int l,r,k;
-	for(int i=1;i<=M;i++)
+	for(int i=1;i<=m;i++)
 	{
 		scanf("%d%d%d",&l,&r,&k);
-		int S=solve(root[r],root[l-1],1,N,k);
-		printf("%d\n",map1[S]);
+		printf("%d\n",mp[Query(rt[l-1],rt[r],k)]);
 	}
 	return 0;
 }
