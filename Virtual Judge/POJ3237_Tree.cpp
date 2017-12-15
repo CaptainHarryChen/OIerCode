@@ -55,8 +55,8 @@ void dfs2(int u,int tp)
 	}
 }
 
-int mx[MAXN*4],mn[MAXN*4],mxpos,n;
-bool neg[MAXN*4];
+int mx[MAXN*8],mn[MAXN*8],mxpos,n;
+bool neg[MAXN*8];
 void PushDown(int u)
 {
 	if(neg[u])
@@ -71,6 +71,9 @@ void PushDown(int u)
 }
 void PushUp(int u,int L,int R,int mid)
 {
+	PushDown(u);
+	PushDown(u*2);
+	PushDown(u*2+1);
 	if(L==mid&&rnk[L]<=n)
 	{
 		mx[u]=mx[u*2+1],mn[u]=mn[u*2+1];
@@ -116,11 +119,12 @@ void Modify(int pos,int nval,int u=1,int L=1,int R=mxpos)
 }
 void Negate(int l,int r,int u=1,int L=1,int R=mxpos)
 {
+	PushDown(u);
 	if(R<l||r<L)return;
-	if(L==R)
+	if(l<=L&&R<=r)
 	{
-		mx[u]=-mx[u];
-		mn[u]=-mn[u];
+		neg[u]^=1;
+		PushDown(u);
 		return;
 	}
 	int mid=(L+R)/2;
@@ -130,12 +134,12 @@ void Negate(int l,int r,int u=1,int L=1,int R=mxpos)
 }
 int Max(int l,int r,int u=1,int L=1,int R=mxpos)
 {
+	PushDown(u);
 	if(R<l||r<L)return 0x80808080;
 	if(L==R&&rnk[L]<=n)return 0x80808080;
-	PushDown(u);
 	if(l<=L&&R<=r)
 		return mx[u];
-	int mid=(L+R)/2,res=0;
+	int mid=(L+R)/2,res=0x80808080;
 	res=Max(l,r,u*2,L,mid);
 	res=max(res,Max(l,r,u*2+1,mid+1,R));
 	PushUp(u,L,R,mid);
