@@ -187,7 +187,6 @@ void Init(int n)
 }
 int main()
 {
-	//freopen("out.txt","w",stdout);
 	int T;
 	char op[10];
 	scanf("%d",&T);
