@@ -37,7 +37,8 @@ void add_edge(int u,int v)
 }
 
 int fa[MAXN],son[MAXN],siz[MAXN],dep[MAXN];
-int top[MAXN],tid[MAXN],rnk[MAXN],csiz[MAXN],dcnt;
+int top[MAXN],tid[MAXN],rnk[MAXN],dcnt;
+int lid[MAXN],rid[MAXN];
 void dfs1(int u,int pa,int deep)
 {
 	fa[u]=pa;dep[u]=deep;
@@ -58,9 +59,10 @@ void dfs1(int u,int pa,int deep)
 void dfs2(int u,int tp)
 {
 	tid[u]=++dcnt;
+	if(u==tp)lid[u]=dcnt;
 	rnk[dcnt]=u;
 	top[u]=tp;
-	csiz[tp]++;
+	rid[tp]=dcnt;
 	if(son[u]==0)return;
 	dfs2(son[u],tp);
 	for(Edge *p=V[u];p;p=p->nxt)
@@ -106,7 +108,7 @@ void Build(Node *&u,int L,int R)
 			int v=p->v;
 			if(v!=fa[t]&&top[v]!=top[t])
 			{
-				Build(root[top[v]],tid[v],tid[v]+csiz[top[v]]-1);
+				Build(root[top[v]],tid[v],rid[top[v]]);
 				oth[t].push(root[top[v]]->mnl+1);
 			}
 		}
@@ -161,7 +163,7 @@ void Modify(int u)
 	while(u)
 	{
 		t=root[top[u]]->mnl;
-		Modify(tid[u],od,nw,root[top[u]],tid[top[u]],tid[top[u]]+csiz[top[u]]-1);
+		Modify(tid[u],od,nw,root[top[u]],lid[top[u]],rid[top[u]]);
 		od=t;
 		nw=root[top[u]]->mnl;
 		u=fa[top[u]];
@@ -172,8 +174,8 @@ int Query(int u)
 	int res=IMAX,dis=0,last=u;
 	while(u)
 	{
-		res=min(res,Query(tid[u],tid[top[u]]+csiz[top[u]]-1,0,root[top[u]],tid[top[u]],tid[top[u]]+csiz[top[u]]-1)+dis);
-		res=min(res,Query(tid[top[u]],tid[u],1,root[top[u]],tid[top[u]],tid[top[u]]+csiz[top[u]]-1)+dis);
+		res=min(res,Query(tid[u],rid[top[u]],0,root[top[u]],lid[top[u]],rid[top[u]])+dis);
+		res=min(res,Query(lid[top[u]],tid[u],1,root[top[u]],lid[top[u]],rid[top[u]])+dis);
 		last=u;
 		u=fa[top[u]];
 		dis+=dep[last]-dep[u];
@@ -193,7 +195,7 @@ int main()
 	
 	dfs1(1,0,1);
 	dfs2(1,1);
-	Build(root[1],tid[1],tid[1]+csiz[1]-1);
+	Build(root[1],lid[1],rid[1]);
 	
 	scanf("%d",&Q);
 	for(int i=1;i<=Q;i++)
