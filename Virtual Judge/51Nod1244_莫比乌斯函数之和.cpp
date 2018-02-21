@@ -1,51 +1,61 @@
 #include<cstdio>
 #include<map>
 using namespace std;
-const long long MAXN=5000005LL;
-long long sumu[MAXN];
-int prime[MAXN],pcnt;
-bool noprime[MAXN];
-map<long long,long long>S;
-void Init()
+const long long MAXN=5000000;
+
+long long sumu[MAXN+10];
+map<long long,long long> S;
+
+void init_sumu()
 {
-	noprime[1]=1;
-	sumu[1]=1;
-	for(int i=2;i<MAXN;i++)
+	static long long mu[MAXN],prime[MAXN],pcnt=0;
+	static bool npr[MAXN]={false};
+	mu[1]=1;npr[1]=true;
+	for(long long i=2;i<MAXN;i++)
 	{
-		if(!noprime[i])
+		if(!npr[i])
 		{
 			prime[++pcnt]=i;
-			sumu[i]=-1;
+			mu[i]=-1;
 		}
-		for(int j=1;j<=pcnt&&1LL*i*prime[j]<MAXN;j++)
+		for(long long j=1;j<=pcnt&&1LL*prime[j]*i<MAXN;j++)
 		{
-			noprime[i*prime[j]]=1;
-			if(i%prime[j]==0)break;
-			sumu[i*prime[j]]=-sumu[i];
+			npr[i*prime[j]]=true;
+			if(i%prime[j]==0)
+			{
+				mu[i*prime[j]]=0;
+				break;
+			}
+			mu[i*prime[j]]=-mu[i];
 		}
 	}
-	for(int i=2;i<MAXN;i++)
-		sumu[i]+=sumu[i-1];
+	sumu[0]=0;
+	for(long long i=1;i<MAXN;i++)
+		sumu[i]=sumu[i-1]+mu[i];
 }
-long long getsum(long long n)
+
+long long solve(long long n)
 {
 	if(n<MAXN)
 		return sumu[n];
 	if(S.count(n))
 		return S[n];
-	long long ans=1,i=2;
-	do
+	long long res=1,nxt=0;
+	for(long long k=2;k<=n;)
 	{
-		ans-=getsum(n/i)*(n/(n/i)-i+1);
-		i=(n/(n/i))+1;
-	}while(i<=n);
-	return S[n]=ans;
+		nxt=n/(n/k);
+		res-=(nxt-k+1)*solve(n/k);
+		k=nxt+1;
+	}
+	S[n]=res;
+	return res;
 }
+
 int main()
 {
-	Init();
+	init_sumu();
 	long long a,b;
 	scanf("%lld%lld",&a,&b);
-	printf("%lld\n",getsum(b)-getsum(a-1));
+	printf("%lld\n",solve(b)-solve(a-1));
 	return 0;
 }
