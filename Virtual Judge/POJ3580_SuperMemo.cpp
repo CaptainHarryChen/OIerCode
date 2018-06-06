@@ -2,300 +2,257 @@
 #include<cstring>
 #include<algorithm>
 using namespace std;
-const int MAXN=200005,INF=0x7FFFFFFF;
+const int MAXN=200005,INF=0x7F7F7F7F;
 
-template<class T>
-void Read(T &x)
-{
-	char c;
-	bool f=0;
-	while(c=getchar(),c!=EOF)
-	{
-		if(c=='-')
-			f=1;
-		else if(c>='0'&&c<='9')
-		{
-			x=c-'0';
-			while(c=getchar(),c>='0'&&c<='9')
-				x=x*10+c-'0';
-			if(f)
-				x=-x;
-			return;
-		}
-	}
-}
-
+struct Node *null;
 struct Node
 {
-	int val,add,mn,siz;
-	bool flip;
-	Node *ch[2],*fa;
+	int val;
+	int siz;
+	int add;
+	int mn;
+	bool rev;
+	Node *fa,*ch[2];
+	Node(){}
+	Node(int value)
+	{mn=val=value;add=0;siz=1;rev=false;fa=ch[0]=ch[1]=null;}
+	int Dir()
+	{return fa->ch[1]==this;}
+	void SetChild(Node *child,int Dir)
+	{
+		ch[Dir]=child;
+		if(child!=null)
+			child->fa=this;
+	}
+	void PushUp()
+	{
+		siz=ch[0]->siz+1+ch[1]->siz;
+		mn=min(val,min(ch[0]->mn,ch[1]->mn));
+	}
+	void PushDown()
+	{
+		if(ch[0]!=null)
+		{
+			ch[0]->add+=add;
+			ch[0]->mn+=add;
+			ch[0]->val+=add;
+		}
+		if(ch[1]!=null)
+		{
+			ch[1]->add+=add;
+			ch[1]->mn+=add;
+			ch[1]->val+=add;
+		}
+		add=0;
+		if(rev)
+		{
+			swap(ch[0],ch[1]);
+			if(ch[0]!=null)ch[0]->rev^=1;
+			if(ch[1]!=null)ch[1]->rev^=1;
+			rev=false;
+		}
+	}
 };
 
-Node nodes[MAXN],*null,*root,*ncnt;
+Node nodes[MAXN],*ncnt,*root;
+
 void Init()
 {
 	null=nodes;
-	null->ch[0]=null->ch[1]=null->fa=null;
-	null->mn=INF;
-	root=null;
+	*null=Node(INF);
+	null->siz=0;
 	ncnt=nodes+1;
+	root=null;
 }
 Node *NewNode(int val)
 {
-	ncnt->val=ncnt->mn=val;
-	ncnt->ch[0]=ncnt->ch[1]=ncnt->fa=null;
-	ncnt->siz=1;
+	*ncnt=Node(val);
 	return ncnt++;
-}
-
-void PushDown(Node *u)
-{
-	if(u->flip)
-	{
-		swap(u->ch[0],u->ch[1]);
-		if(u->ch[0]!=null)u->ch[0]->flip^=1;
-		if(u->ch[1]!=null)u->ch[1]->flip^=1;
-		u->flip=0;
-	}
-	if(u->ch[0]!=null)
-		u->ch[0]->add+=u->add,u->ch[0]->val+=u->add,u->ch[0]->mn+=u->add;
-	if(u->ch[1]!=null)
-		u->ch[1]->add+=u->add,u->ch[1]->val+=u->add,u->ch[1]->mn+=u->add;
-	u->add=0;
-}
-void PushUp(Node *u)
-{
-	u->siz=1+u->ch[0]->siz+u->ch[1]->siz;
-	u->mn=u->val;
-	u->mn=min(u->mn,u->ch[0]->mn);
-	u->mn=min(u->mn,u->ch[1]->mn);
 }
 
 void Rotate(Node *u)
 {
 	Node *v=u->fa;
-	PushDown(v);
-	PushDown(u);
-	int d=v->ch[1]==u;
+	v->PushDown();
+	u->PushDown();
+	int d=u->Dir();
 	
-	u->fa=v->fa;
 	if(v->fa!=null)
-		v->fa->ch[v->fa->ch[1]==v]=u;
-		
-	v->ch[d]=u->ch[d^1];
-	if(u->ch[d^1]!=null)
-		u->ch[d^1]->fa=v;
+		v->fa->SetChild(u,v->Dir());
+	else
+		u->fa=null;
 	
-	u->ch[d^1]=v;
-	v->fa=u;
+	v->SetChild(u->ch[d^1],d);
+	u->SetChild(v,d^1);
 	
 	if(root==v)
 		root=u;
-	PushUp(v);
-	PushUp(u);
+	
+	v->PushUp();
+	u->PushUp();
 }
 void Splay(Node *u,Node *rt=null)
 {
-	while(true)
+	while(u!=null)
 	{
 		Node *v=u->fa;
+		if(v==rt)
+			break;
 		Node *w=v->fa;
-		PushDown(w);
-		PushDown(v);
-		PushDown(u);
-		if(v==rt)break;
 		if(w==rt)
 		{
 			Rotate(u);
 			break;
 		}
+		w->PushDown();
+		v->PushDown();
+		if(u->Dir()==v->Dir())
+			Rotate(v);
 		else
-		{
-			if((w->ch[1]==v)==(v->ch[1]==u))
-				Rotate(v),Rotate(u);
-			else
-				Rotate(u),Rotate(u);
-		}
+			Rotate(u);
+		Rotate(u);
 	}
-	PushUp(u);
 }
-Node *GetNear(Node *u,int f)
+void Build(int a[],int l,int r)
 {
-	PushDown(u);
-	u=u->ch[f];
-	if(u==null)
-		return u;
-	f^=1;
-	PushDown(u);
-	while(u->ch[f]!=null)
-		u=u->ch[f],PushDown(u);
-	return u;
+	root=NewNode(a[l]);
+	Node *u=root;
+	for(int i=1;i<=r;i++)
+	{
+		u->SetChild(NewNode(a[i]),1);
+		u=u->ch[1];
+	}
+	for(int i=r;i>l;i--)
+	{
+		u=u->fa;
+		u->PushUp();
+	}
 }
 
-void MakeTree(int A[],int l,int r,Node *&u=root)
+Node *FindKth(int k)
 {
-	if(l==r)
-	{
-		u=NewNode(A[l]);
-		return;
-	}
-	int mid=(l+r)/2;
-	u=NewNode(A[mid]);
-	if(l<mid)
-	{
-		MakeTree(A,l,mid-1,u->ch[0]);
-		u->ch[0]->fa=u;
-	}
-	if(mid<r)
-	{
-		MakeTree(A,mid+1,r,u->ch[1]);
-		u->ch[1]->fa=u;
-	}
-	PushUp(u);
-}
-Node *GetKthNum(int k)
-{
+	if(k>root->siz)
+		return null;
 	Node *u=root;
-	int r;
 	while(u!=null)
 	{
-		PushDown(u);
-		r=u->ch[0]->siz;
-		if(r==k)
-			break;
-		if(r<k)
+		u->PushDown();
+		int rank=u->ch[0]->siz;
+		if(rank==k)
+			return u;
+		else if(rank<k)
 		{
-			k-=r+1;
+			k-=rank+1;
 			u=u->ch[1];
 		}
 		else
 			u=u->ch[0];
 	}
-	return u;
+	return null;
 }
-void GetSection(int a,int b,Node *&rt,Node *&rtf)
+Node *SelectSection(int x,int y)
 {
-	Node *u=GetKthNum(a);
-	Splay(u);
-	Node *l=GetNear(u,0);
-	Node *v=GetKthNum(b);
-	Splay(v);
-	Node *r=GetNear(v,1);
-	Splay(l);
-	Splay(r,l);
-	PushDown(root);
-	PushDown(root->ch[0]);
-	rtf=root->ch[1];
-	rt=rtf->ch[0];
+	Node *l=FindKth(x-1);Splay(l);
+	Node *r=FindKth(y+1);Splay(r,l);
+	r->PushDown();
+	return r->ch[0];
 }
 
-void Add(int a,int b,int ad)
+void Add(int x,int y,int D)
 {
-	Node *u,*v;
-	GetSection(a,b,u,v);
-	u->add+=ad;u->val+=ad;u->mn+=ad;
-	Splay(u);
+	Node *sec=SelectSection(x,y);
+	sec->add+=D;
+	sec->mn+=D;
+	sec->val+=D;
+	Splay(sec);
 }
-void Reverse(int a,int b)
+void Reverse(int x,int y)
 {
-	Node *u,*v;
-	GetSection(a,b,u,v);
-	u->flip^=1;
-	Splay(u);
+	Node *sec=SelectSection(x,y);
+	sec->rev^=1;
+	Splay(sec);
 }
-void Revolve(int a,int b,int T)
+void Revolve(int x,int y,int T)
 {
-	T=(T%(b-a+1)+(b-a+1))%(b-a+1);
+	T%=(y-x+1);
+	T=(T+y-x+1)%(y-x+1);
 	if(T==0)return;
-	Node *rt,*rtf,*u;
-	GetSection(a,b,rt,rtf);
-	
-	u=GetKthNum(b-T+1);
-	Splay(u,rtf);
-	Node *l=GetNear(u,0);
-	
-	Splay(l,rtf);
-	Splay(u,l);
-	PushDown(l);
-	l->ch[1]=null;
-	u->fa=null;
-	PushUp(l);
-	
-	Node *v=GetKthNum(a);
-	Splay(v,rtf);
-	PushDown(v);
-	v->ch[0]=u;
-	u->fa=v;
-	PushUp(v);
+	Reverse(x,y);
+	Reverse(x,x+T-1);
+	Reverse(x+T,y);
 }
-void Insert(int a,int P)
+void Insert(int x,int P)
 {
-	Node *u,*v;
-	GetSection(a+1,a,u,v);
-	PushDown(v);
-	v->ch[0]=NewNode(P);
-	v->ch[0]->fa=v;
+	Node *u,*v,*nw=NewNode(P);
+	if(root==null)
+	{
+		root=nw;
+		return;
+	}
+	u=FindKth(x);Splay(u);
+	v=FindKth(x+1);Splay(v,u);
+	v->PushDown();
+	v->SetChild(nw,0);
+	Splay(nw);
+}
+void Delete(int x)
+{
+	Node *u=SelectSection(x,x),*v=u->fa;
+	v->PushDown();
+	v->SetChild(null,0);
 	Splay(v);
 }
-void Delete(int a)
+int Min(int x,int y)
 {
-	Node *u,*v;
-	GetSection(a,a,u,v);
-	PushDown(v);
-	v->ch[0]=null;
-	Splay(v);
-}
-int Min(int a,int b)
-{
-	Node *u,*v;
-	GetSection(a,b,u,v);
-	return u->mn;
+	Node *sec=SelectSection(x,y);
+	int ans=sec->mn;
+	Splay(sec);
+	return ans;
 }
 
-int A[MAXN];
+int a[MAXN];
 int main()
 {
-	int n,m,x,y,D,P,T;
+	int n,m;
 	char op[10];
+	scanf("%d",&n);
 	Init();
-	Read(n);
+	a[0]=INF;a[n+1]=INF;
 	for(int i=1;i<=n;i++)
-		Read(A[i]);
-	A[0]=INF;A[n+1]=INF;
-	MakeTree(A,0,n+1);
-	Read(m);
-	for(int i=1;i<=m;i++)
+		scanf("%d",a+i);
+	Build(a,0,n+1);
+	scanf("%d",&m);
+	for(int i=1,x,y,T,P,D;i<=m;i++)
 	{
 		scanf("%s",op);
 		if(strcmp(op,"ADD")==0)
 		{
-			Read(x);Read(y);Read(D);
+			scanf("%d%d%d",&x,&y,&D);
 			Add(x,y,D);
 		}
 		else if(strcmp(op,"REVERSE")==0)
 		{
-			Read(x);Read(y);
+			scanf("%d%d",&x,&y);
 			Reverse(x,y);
 		}
 		else if(strcmp(op,"REVOLVE")==0)
 		{
-			Read(x);Read(y);Read(T);
+			scanf("%d%d%d",&x,&y,&T);
 			Revolve(x,y,T);
 		}
 		else if(strcmp(op,"INSERT")==0)
 		{
-			Read(x);Read(P);
+			scanf("%d%d",&x,&P);
 			Insert(x,P);
 		}
 		else if(strcmp(op,"DELETE")==0)
 		{
-			Read(x);
+			scanf("%d",&x);
 			Delete(x);
 		}
 		else if(strcmp(op,"MIN")==0)
 		{
-			Read(x);Read(y);
+			scanf("%d%d",&x,&y);
 			printf("%d\n",Min(x,y));
 		}
 	}

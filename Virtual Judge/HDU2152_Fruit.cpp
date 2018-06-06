@@ -1,24 +1,22 @@
 #include<cstdio>
 #include<cstring>
-#define MAXN 105
+const int MAXN=105;
 int c1[MAXN],c2[MAXN];
-int fru[MAXN][2];
+int A[MAXN],B[MAXN];
 int main()
 {
 	int n,m;
-	while(scanf("%d%d",&n,&m)==2)
+	while(scanf("%d%d",&n,&m)!=EOF)
 	{
-		memset(fru,0,sizeof fru);
 		for(int i=1;i<=n;i++)
-			scanf("%d%d",&fru[i][0],&fru[i][1]);
+			scanf("%d%d",A+i,B+i);
 		memset(c1,0,sizeof c1);
-		for(int i=fru[1][0];i<=fru[1][1];i++)
-			c1[i]=1;
-		for(int i=2;i<=n;i++)
+		c1[0]=1;
+		for(int i=1;i<=n;i++)
 		{
 			memset(c2,0,sizeof c2);
 			for(int j=0;j<=m;j++)
-				for(int k=fru[i][0];k+j<=m&&k<=fru[i][1];k++)
+				for(int k=A[i];k<=B[i]&&k+j<=m;k++)
 					c2[j+k]+=c1[j];
 			memcpy(c1,c2,sizeof c1);
 		}

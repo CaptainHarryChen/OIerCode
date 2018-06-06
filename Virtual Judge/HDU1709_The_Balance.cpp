@@ -1,81 +1,41 @@
 #include<cstdio>
 #include<cstring>
-#define MAXN 105
-#define MAXW 10005
-int E[2][MAXW];
-int W[MAXN],p[MAXN];
+const int MAXN=205,MAXW=10005;
+int W,c1[MAXW],c2[MAXW];
+int A[MAXN];
 int main()
 {
-	int N,S,cnt;
-	while(~scanf("%d",&N))
+	int n;
+	while(scanf("%d",&n)!=EOF)
 	{
-		S=0;
-		for(int i=1;i<=N;i++)
+		W=0;
+		for(int i=1;i<=n;i++)
 		{
-			scanf("%d",&W[i]);
-			S+=W[i];
+			scanf("%d",A+i);
+			W+=A[i];
+			A[n+i]=-A[i];
 		}
-		memset(E,0,sizeof E);
-		E[1][W[1]]=E[1][0]=1;
-		for(int i=2;i<=N;i++)
+		memset(c1,0,sizeof c1);
+		c1[0]=1;
+		for(int i=1;i<=2*n;i++)
 		{
-			memset(E[i&1],0,sizeof(int)*MAXW);
-			for(int j=0;j<=S;j++)
+			memset(c2,0,sizeof c2);
+			for(int j=0;j<=W;j++)
 			{
-				E[i&1][j]+=E[(i+1)&1][j];
-				E[i&1][j+W[i]]+=E[(i+1)&1][j];
-				if(j>W[i])E[i&1][j-W[i]]+=E[(i+1)&1][j];
-				else E[i&1][W[i]-j]+=E[(i+1)&1][j];
+				c2[j]+=c1[j];
+				if(j+A[i]<=W&&j+A[i]>=0)
+					c2[j+A[i]]+=c1[j];
 			}
+			memcpy(c1,c2,sizeof c1);
 		}
-		cnt=0;
-		for(int i=1;i<=S;i++)
-			if(!E[N&1][i])
-			{p[cnt++]=i;}
+		int cnt=0;
+		for(int i=0;i<W;i++)
+			if(c1[i]==0)
+				cnt++;
 		printf("%d\n",cnt);
-		for(int i=0;i<cnt-1;i++)
-			printf("%d ",p[i]);
-		if(cnt)printf("%d\n",p[cnt-1]);
-	}
-	return 0;
-}#include<cstdio>
-#include<cstring>
-#define MAXN 105
-#define MAXW 10005
-int E[2][MAXW];
-int W[MAXN],p[MAXN];
-int main()
-{
-	int N,S,cnt;
-	while(~scanf("%d",&N))
-	{
-		S=0;
-		for(int i=1;i<=N;i++)
-		{
-			scanf("%d",&W[i]);
-			S+=W[i];
-		}
-		memset(E,0,sizeof E);
-		E[1][W[1]]=E[1][0]=1;
-		for(int i=2;i<=N;i++)
-		{
-			memset(E[i&1],0,sizeof(int)*MAXW);
-			for(int j=0;j<=S;j++)
-			{
-				E[i&1][j]+=E[(i+1)&1][j];
-				E[i&1][j+W[i]]+=E[(i+1)&1][j];
-				if(j>W[i])E[i&1][j-W[i]]+=E[(i+1)&1][j];
-				else E[i&1][W[i]-j]+=E[(i+1)&1][j];
-			}
-		}
-		cnt=0;
-		for(int i=1;i<=S;i++)
-			if(!E[N&1][i])
-			{p[cnt++]=i;}
-		printf("%d\n",cnt);
-		for(int i=0;i<cnt-1;i++)
-			printf("%d ",p[i]);
-		if(cnt)printf("%d\n",p[cnt-1]);
+		for(int i=0;i<=W;i++)
+			if(c1[i]==0)
+				printf("%d%c",i,(--cnt)==0?'\n':' ');
 	}
 	return 0;
 }
