@@ -1,79 +1,81 @@
 #include<cstdio>
+#include<vector>
+#include<queue>
 #include<algorithm>
 using namespace std;
 const int MAXN=50005;
-struct SegTree
+
+int N,K;
+
+long long dis[MAXN];
+int cnt[MAXN];
+bool inq[MAXN];
+vector<int> adj[MAXN],len[MAXN];
+
+void AddEdge(int u,int v,int l)
 {
-	int sum[MAXN*4];
-	void Insert(int L,int R,int l=0,int r=50000,int id=1)
-	{
-		if(r<L||R<l)
-			return;
-		if(L<=l&&r<=R)
-		{
-			sum[id]=r-l+1;
-			return;
-		}
-		if(sum[id]==r-l+1)
-		{
-			sum[id*2]=(l+r)/2-l+1;
-			sum[id*2+1]=r-(l+r)/2;
-		}
-		Insert(L,R,l,(l+r)/2,id*2);
-		Insert(L,R,(l+r)/2+1,r,id*2+1);
-		sum[id]=sum[id*2]+sum[id*2+1];
-	}
-	int Query(int L,int R,int l=0,int r=50000,int id=1)
-	{
-		if(r<L||R<l)
-			return 0;
-		if(L<=l&&r<=R)
-			return sum[id];
-		if(sum[id]==r-l+1)
-		{
-			sum[id*2]=(l+r)/2-l+1;
-			sum[id*2+1]=r-(l+r)/2;
-		}
-		int ret=0;
-		ret+=Query(L,R,l,(l+r)/2,id*2);
-		ret+=Query(L,R,(l+r)/2+1,r,id*2+1);
-		return ret;
-	}
-};
-struct Sec
+	adj[u].push_back(v);
+	len[u].push_back(l);
+}
+
+queue<int> Q;
+
+long long SPFA(int S,int T)
 {
-	int l,r,num;
-	bool operator < (const Sec &t) const
-	{return r<t.r||(r==t.r&&l<t.l);}
-};
-Sec s[MAXN];
-SegTree ST;
-int chosen[MAXN][2],cnt;
+	fill(dis+1,dis+T+1,-0x3F3F3F3F3F3F3F3FLL);
+	dis[S]=0;
+	Q.push(S);
+	inq[S]=true;
+	while(!Q.empty())
+	{
+		int u=Q.front();
+		Q.pop();
+		inq[u]=false;
+		cnt[u]++;
+		if(cnt[u]>T-S+1)
+			return -1;
+		for(int i=0;i<(int)adj[u].size();i++)
+		{
+			int v=adj[u][i];
+			if(dis[v]<dis[u]+len[u][i])
+			{
+				dis[v]=dis[u]+len[u][i];
+				if(!inq[v])
+				{
+					Q.push(v);
+					inq[v]=true;
+				}
+			}
+		}
+	}
+	return dis[T];
+}
+
+vector<int> node;
+
 int main()
 {
-	int N;
+	int N,mx=0,mn=MAXN;
 	scanf("%d",&N);
 	for(int i=1;i<=N;i++)
-		scanf("%d%d%d",&s[i].l,&s[i].r,&s[i].num);
-	sort(s+1,s+N+1);
-	int ans=0,tmp;
-	for(int i=1;i<=N;i++)
 	{
-		tmp=ST.Query(s[i].l,s[i].r);
-		if(tmp<s[i].num)
-		{
-			int l=s[i].r-s[i].num+tmp+1;
-			while(cnt>0&&chosen[cnt][1]>=l)
-			{
-				l=chosen[cnt][0]-(chosen[cnt][1]-l+1);
-				cnt--;
-			}
-			ST.Insert(l,s[i].r);
-			chosen[++cnt][0]=l;
-			chosen[cnt][1]=s[i].r;
-			ans+=s[i].num-tmp;
-		}
+		int a,b,c;
+		scanf("%d%d%d",&a,&b,&c);
+		b++;
+		AddEdge(a,b,c);
+		mx=max(mx,b);
+		mn=min(mn,a);
+		node.push_back(a);
+		node.push_back(b);
 	}
-	printf("%d\n",ans);
+	sort(node.begin(),node.end());
+	node.resize(unique(node.begin(),node.end())-node.begin());
+	for(int i=0;i<(int)node.size()-1;i++)
+	{
+		AddEdge(node[i+1],node[i],node[i]-node[i+1]);
+		AddEdge(node[i],node[i+1],0);
+	}
+	printf("%lld\n",SPFA(mn,mx));
+	
 	return 0;
 }
