@@ -1,144 +1,128 @@
 #include<cstdio>
 #include<cstring>
+#include<vector>
 #include<algorithm>
 using namespace std;
-const int MAXN=200005,MAXM=200005;
+const int MAXN=200005,MAXLOG=20;
+
 struct Edge
 {
-	int u,v,val,id;
+	int u,v,w,id;
+	Edge(){}
+	Edge(int u,int v,int w,int id):u(u),v(v),w(w),id(id){}
 	bool operator < (const Edge &t)const
-	{return val<t.val;}
+	{return w<t.w;}
 };
-bool number(const Edge &a,const Edge &b)
-{return a.id<b.id;}
-struct Edge_list
+struct AdjEdge
 {
-	int v,val,id;
-	Edge_list *next;
-	Edge_list(){}
-	Edge_list(int _v,int _val,int _id)
-	{next=NULL,v=_v,val=_val,id=_id;}
+	int v,w;
+	AdjEdge();
+	AdjEdge(int v,int w):v(v),w(w){};
 };
-class LCAtree
+
+int dsu[MAXN];
+int Root(int x)
 {
-private:
-	int fa[MAXN][20],val[MAXN][20],mlog;
-	int lev[MAXN];
-	Edge_list E[MAXM*2],*cur;
-	void dfs(int u,int f,int level)
+	if(dsu[x]==0)
+		return x;
+	return dsu[x]=Root(dsu[x]);
+}
+
+int n,m;
+bool used[MAXN];
+long long ans[MAXN];
+Edge edge[MAXN];
+
+vector<AdjEdge> adj[MAXN];
+void AddEdge(int u,int v,int w)
+{
+	adj[u].push_back(AdjEdge(v,w));
+	adj[v].push_back(AdjEdge(u,w));
+}
+
+int dep[MAXN],fa[MAXN][MAXLOG],mx[MAXN][MAXLOG];
+void dfs(int u,int f=0,int deep=1)
+{
+	dep[u]=deep;
+	fa[u][0]=f;
+	for(int i=0;i<(int)adj[u].size();i++)
 	{
-		for(Edge_list *p=V[u];p;p=p->next)
-			if(p->v!=f)
-			{
-				lev[p->v]=level+1;
-				fa[p->v][0]=u;
-				val[p->v][0]=p->val;
-				dfs(p->v,u,level+1);
-			}
+		int v=adj[u][i].v;
+		if(v==f)
+			continue;
+		mx[v][0]=adj[u][i].w;
+		dfs(v,u,deep+1);
 	}
-public:
-	Edge_list *V[MAXN];
-	LCAtree()
-	{cur=E;}
-	void add_edge(const Edge &t)
-	{
-		*cur=Edge_list(t.v,t.val,t.id);
-		cur->next=V[t.u];
-		V[t.u]=cur++;
-		*cur=Edge_list(t.u,t.val,t.id);
-		cur->next=V[t.v];
-		V[t.v]=cur++;
-	}
-	void Init(int n)
-	{
-		dfs(1,0,0);
-		for(int j=1;(1<<j)<=n;j++)
+}
+int LCAmx(int u,int v)
+{
+	if(dep[u]>dep[v])
+		swap(u,v);
+	int ret=0;
+	for(int j=MAXLOG-1;j>=0;j--)
+		if(dep[v]-(1<<j)>=dep[u])
 		{
-			mlog=j;
-			for(int i=1;i<=n;i++)
-				if(lev[i]>=(1<<j))
-				{
-					fa[i][j]=fa[fa[i][j-1]][j-1];
-					val[i][j]=max(val[i][j-1],val[fa[i][j-1]][j-1]);
-				}
+			ret=max(ret,mx[v][j]);
+			v=fa[v][j];
 		}
-	}
-	int LCA(int a,int b,int &mx)
-	{
-		mx=0;
-		if(lev[a]<lev[b])
-			swap(a,b);
-		for(int i=mlog;i>=0;i--)
-			if(lev[a]-(1<<i)>=lev[b])
-			{
-				mx=max(mx,val[a][i]);
-				a=fa[a][i];
-			}
-		if(a==b)
-			return a;
-		for(int i=mlog;i>=0;i--)
-			if(lev[a]-(1<<i)>=0&&fa[a][i]!=fa[b][i])
-			{
-				mx=max(mx,max(val[a][i],val[b][i]));
-				a=fa[a][i];
-				b=fa[b][i];
-			}
-		mx=max(mx,max(val[a][0],val[b][0]));
-		return fa[a][0];
-	}
-};
-class UFset
-{
-private:
-	int fa[MAXN];
-public:
-	int Find(int x)
-	{
-		if(fa[x]==0)
-			return x;
-		return fa[x]=Find(fa[x]);
-	}
-	void Union(int x,int y)
-	{fa[x]=y;}
-};
-Edge E[MAXM];
-bool used[MAXM];
-UFset U;
-LCAtree L;
+	if(u==v)
+		return ret;
+	for(int j=MAXLOG-1;j>=0;j--)
+		if(dep[u]-(1<<j)>0&&fa[u][j]!=fa[v][j])
+		{
+			ret=max(ret,max(mx[u][j],mx[v][j]));
+			u=fa[u][j];
+			v=fa[v][j];
+		}
+	ret=max(ret,max(mx[u][0],mx[v][0]));
+	return ret;
+}
+
 int main()
 {
-	int n,m;
+	//input
 	scanf("%d%d",&n,&m);
+	for(int i=1,u,v,w;i<=m;i++)
+	{
+		scanf("%d%d%d",&u,&v,&w);
+		edge[i]=Edge(u,v,w,i);
+	}
+	//Kruskal
+	long long sum=0;
+	sort(edge+1,edge+m+1);
 	for(int i=1;i<=m;i++)
 	{
-		scanf("%d%d%d",&E[i].u,&E[i].v,&E[i].val);
-		E[i].id=i;
+		int r1=Root(edge[i].u),r2=Root(edge[i].v);
+		if(r1==r2)
+			continue;
+		dsu[r1]=r2;
+		sum+=edge[i].w;
+		used[i]=true;
+		AddEdge(edge[i].u,edge[i].v,edge[i].w);
 	}
-	sort(E+1,E+m+1);
-	int r1,r2;
-	long long W=0;
+	//InitLCA
+	dfs(1);
+	for(int j=1;j<MAXLOG;j++)
+		for(int i=1;i<=n;i++)
+			if(fa[i][j-1]!=0&&fa[fa[i][j-1]][j-1]!=0)
+			{
+				fa[i][j]=fa[fa[i][j-1]][j-1];
+				mx[i][j]=max(mx[i][j-1],mx[fa[i][j-1]][j-1]);
+			}
+	//solve
 	for(int i=1;i<=m;i++)
 	{
-		r1=U.Find(E[i].u);
-		r2=U.Find(E[i].v);
-		if(r1!=r2)
-		{
-			W+=E[i].val;
-			used[E[i].id]=true;
-			U.Union(r1,r2);
-			L.add_edge(E[i]);
-		}
-	}
-	sort(E+1,E+m+1,number);
-	L.Init(n);
-	int mx;
-	for(int i=1;i<=m;i++)
 		if(used[i])
-			printf("%I64d\n",W);
+			ans[edge[i].id]=sum;
 		else
 		{
-			L.LCA(E[i].u,E[i].v,mx);
-			printf("%I64d\n",W-mx+E[i].val);
+			int delta=edge[i].w-LCAmx(edge[i].u,edge[i].v);
+			ans[edge[i].id]=sum+delta;
 		}
+	}
+	//output
+	for(int i=1;i<=m;i++)
+		printf("%I64d\n",ans[i]);
+	
 	return 0;
 }

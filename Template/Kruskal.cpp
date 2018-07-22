@@ -1,46 +1,55 @@
 #include<cstdio>
 #include<algorithm>
-using std::sort;
-#define MAXN 110
-#define MAXE MAXN*MAXN
-int n,m,S[MAXN],ans;
+using namespace std;
+const int MAXN=105,MAXE=MAXN*MAXN;
+
 struct Edge
 {
-	int x,y,v;
-	bool operator<(Edge t)const
-	{return v<t.v;}
-}edge[MAXE];
-int Find(int x)
-{return S[x]==x?x:S[x]=Find(S[x]);}
-void Kruskal()
+	int u,v,len;
+	Edge(){}
+	Edge(int _u,int _v,int _len)
+	{u=_u;v=_v;len=_len;}
+	bool operator < (const Edge &t)const
+	{return len<t.len;}
+};
+
+int dsu[MAXN];
+int Root(int x)
 {
+	if(dsu[x]==0)
+		return x;
+	return (dsu[x]=Root(dsu[x]));
+}
+
+int n,m;
+Edge edge[MAXE];
+
+int Kruskal()
+{
+	sort(edge+1,edge+m+1);
+	int ans=0;
 	for(int i=1;i<=m;i++)
 	{
-		int r1=Find(edge[i].x),r2=Find(edge[i].y);
-		if(r1==r2)continue;
-		S[r1]=r2;
-		ans+=edge[i].v;
+		int r1=Root(edge[i].u),r2=Root(edge[i].v);
+		if(r1==r2)
+			continue;
+		dsu[r1]=r2;
+		ans+=edge[i].len;
 	}
+	return ans;
 }
+
 int main()
 {
 	freopen("Kruskal_data.in","r",stdin);
-	scanf("%d",&n);
-	for(int i=1,x;i<=n;i++)
-		for(int j=1;j<=n;j++)
-		{
-			scanf("%d",&x);
-			if(i<j)
-			{
-				edge[++m].x=i;
-				edge[m].y=j;
-				edge[m].v=x;
-			}
-		}
-	sort(edge+1,edge+m+1);
-	for(int i=1;i<=n;i++)
-		S[i]=i;
-	Kruskal();
-	printf("%d\n",ans);
+	scanf("%d%d",&n,&m);
+	for(int i=1,a,b,c;i<=m;i++)
+	{
+		scanf("%d%d%d",&a,&b,&c);
+		edge[i]=Edge(a,b,c);
+	}
+	
+	printf("%d\n",Kruskal());
+	
 	return 0;
 }

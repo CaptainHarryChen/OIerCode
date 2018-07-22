@@ -2,62 +2,55 @@
 #include<cstring>
 #include<queue>
 #include<vector>
-#include<algorithm>
 using namespace std;
-#define MAXN 505
-#define MAXE 2005
-int n,m,s,t,dis[MAXN],path[MAXN],print[MAXN],p;
-struct Edge
-{
-	int x,v;
-	Edge *next;
-	Edge():next(NULL){}
-	Edge(int a,int b):x(a),v(b),next(NULL){}
-}edge[MAXN];
-typedef pair<int,int> Po;
-priority_queue<Po,vector<Po>,greater<Po> > Q;
-void Dijkstra()
+const int MAXN=1005;
+typedef pair<int,int> Node;
+
+int n,m,s,t;
+vector<int> adj[MAXN],len[MAXN];
+
+int dis[MAXN];
+priority_queue< Node,vector<Node>,greater<Node> > Q;
+
+void Dijkstra(int S)
 {
 	memset(dis,0x3F,sizeof dis);
-	dis[s]=0;
-	Q.push(make_pair(0,s));
+	dis[S]=0;
+	Q.push(Node(0,S));
 	while(!Q.empty())
 	{
-		Po t=Q.top();Q.pop();
-		if(dis[t.second]<t.first)
+		Node a=Q.top();
+		Q.pop();
+		if(a.first>dis[a.second])
 			continue;
-		for(Edge *p=edge[t.second].next;p;p=p->next)
-			if(dis[p->x]>dis[t.second]+p->v)
+		int u=a.second;
+		for(int i=0;i<(int)adj[u].size();i++)
+		{
+			int v=adj[u][i];
+			if(dis[v]>dis[u]+len[u][i])
 			{
-				dis[p->x]=dis[t.second]+p->v;
-				path[p->x]=t.second;
-				Q.push(make_pair(dis[p->x],p->x));
+				dis[v]=dis[u]+len[u][i];
+				Q.push(Node(dis[v],v));
 			}
+		}
 	}
 }
+
 int main()
 {
 	freopen("Dijkstra_data.in","r",stdin);
 	scanf("%d%d",&n,&m);
-	for(int q=1,i,j,w;q<=m;q++)
+	for(int i=1,a,b,c;i<=m;i++)
 	{
-		scanf("%d%d%d",&i,&j,&w);
-		Edge *p=new Edge(j,w);
-		p->next=edge[i].next;
-		edge[i].next=p;
+		scanf("%d%d%d",&a,&b,&c);
+		adj[a].push_back(b);
+		len[a].push_back(c);
+		adj[b].push_back(a);
+		len[b].push_back(c);
 	}
 	scanf("%d%d",&s,&t);
-	Dijkstra();
+	Dijkstra(s);
 	printf("%d\n",dis[t]);
-	int x=path[t];
-	while(x!=s)
-	{
-		print[p++]=x;
-		x=path[x];
-	}
-	printf("%d ",s);
-	for(int i=p-1;i>=0;i--)
-		printf("%d ",print[i]);
-	printf("%d\n",t);
+	
 	return 0;
 }
