@@ -1,204 +1,180 @@
 #include<cstdio>
-#include<cstring>
+#include<vector>
 #include<algorithm>
 using namespace std;
-const int MAXN=200005,MAXM=200005;
+const int MAXN=200005,INF=0x3F3F3F3F,MAXLOG=20;
+const long long LLF=0x3F3F3F3F3F3F3F3FLL;
+
 struct Edge
 {
-	int u,v,id;
-	int c,w;
+	int u,v,c,w,id;
+	Edge(int u=0,int v=0,int c=0,int w=0,int id=0)
+	:u(u),v(v),c(c),w(w),id(id){}
 	bool operator < (const Edge &t)const
 	{return w<t.w;}
 };
-bool number(const Edge &a,const Edge &b)
-{return a.id<b.id;}
-struct Edge_list
+
+struct AdjEdge
 {
-	int v,c,w,id;
-	Edge_list *next;
-	Edge_list(){}
-	Edge_list(int _v,int _c,int _w,int _id)
-	{next=NULL,v=_v,c=_c,w=_w,id=_id;}
+	int v,w,id;
+	AdjEdge(int v=0,int w=0,int id=0)
+	:v(v),w(w),id(id){}
 };
-class LCAtree
+
+namespace DSU
 {
-private:
-	int fa[MAXN][20],val[MAXN][20],id[MAXN][20],mlog;
-	int lev[MAXN];
-	Edge_list E[MAXM*2],*cur;
-	void dfs(int u,int f,int level)
-	{
-		for(Edge_list *p=V[u];p;p=p->next)
-			if(p->v!=f)
-			{
-				lev[p->v]=level+1;
-				fa[p->v][0]=u;
-				val[p->v][0]=p->w;
-				id[p->v][0]=p->id;
-				dfs(p->v,u,level+1);
-			}
-	}
-public:
-	Edge_list *V[MAXN];
-	LCAtree()
-	{cur=E;}
-	void add_edge(const Edge &t)
-	{
-		*cur=Edge_list(t.v,t.c,t.w,t.id);
-		cur->next=V[t.u];
-		V[t.u]=cur++;
-		*cur=Edge_list(t.u,t.c,t.w,t.id);
-		cur->next=V[t.v];
-		V[t.v]=cur++;
-	}
-	void Init(int n)
-	{
-		dfs(1,0,0);
-		for(int j=1;(1<<j)<=n;j++)
-		{
-			mlog=j;
-			for(int i=1;i<=n;i++)
-				if(lev[i]>=(1<<j))
-				{
-					fa[i][j]=fa[fa[i][j-1]][j-1];
-					if(val[i][j-1]>=val[fa[i][j-1]][j-1])
-						id[i][j]=id[i][j-1];
-					else
-						id[i][j]=id[fa[i][j-1]][j-1];
-					val[i][j]=max(val[i][j-1],val[fa[i][j-1]][j-1]);
-				}
-		}
-	}
-	int LCA(int a,int b,int &mx,int &iid)
-	{
-		mx=0;iid=0;
-		if(lev[a]<lev[b])
-			swap(a,b);
-		for(int i=mlog;i>=0;i--)
-			if(lev[a]-(1<<i)>=lev[b])
-			{
-				if(val[a][i]>mx)
-				{
-					mx=val[a][i];
-					iid=id[a][i];
-				}
-				a=fa[a][i];
-			}
-		if(a==b)
-			return a;
-		for(int i=mlog;i>=0;i--)
-			if(lev[a]-(1<<i)>=0&&fa[a][i]!=fa[b][i])
-			{
-				if(val[a][i]>mx)
-				{
-					mx=val[a][i];
-					iid=id[a][i];
-				}
-				if(val[b][i]>mx)
-				{
-					mx=val[b][i];
-					iid=id[b][i];
-				}
-				a=fa[a][i];
-				b=fa[b][i];
-			}
-		if(val[a][0]>mx)
-		{
-			mx=val[a][0];
-			iid=id[a][0];
-		}
-		if(val[b][0]>mx)
-		{
-			mx=val[b][0];
-			iid=id[b][0];
-		}
-		return fa[a][0];
-	}
-};
-class UFset
-{
-private:
 	int fa[MAXN];
-public:
-	int Find(int x)
+	int Root(int x)
 	{
 		if(fa[x]==0)
 			return x;
-		return fa[x]=Find(fa[x]);
+		return fa[x]=Root(fa[x]);
 	}
-	void Union(int x,int y)
+	bool Union(int x,int y)
 	{
-		int r1=Find(x),r2=Find(y);
-		if(r1==r2)return;
+		int r1=Root(x),r2=Root(y);
+		if(r1==r2)
+			return false;
 		fa[r1]=r2;
+		return true;
 	}
-};
-Edge E[MAXM];
-bool used[MAXM];
-LCAtree L;
-UFset U;
+}
+
+vector<AdjEdge> adj[MAXN];
+void AddEdge(Edge e)
+{
+	adj[e.u].push_back(AdjEdge(e.v,e.w,e.id));
+	adj[e.v].push_back(AdjEdge(e.u,e.w,e.id));
+}
+
+int N,M,S;
+long long ans,sumw;
+int minc,mincid,delid;
+Edge E[MAXN];
+bool used[MAXN];
+
+void Kruskal()
+{
+	sort(E+1,E+M+1);
+	sumw=0;minc=INF;
+	for(int i=1;i<=M;i++)
+		if(DSU::Union(E[i].u,E[i].v))
+		{
+			sumw+=E[i].w;
+			if(minc>E[i].c)
+			{
+				minc=E[i].c;
+				mincid=E[i].id;
+			}
+			used[E[i].id]=true;
+			AddEdge(E[i]);
+		}
+}
+
+namespace LCA
+{
+	int dep[MAXN],fa[MAXN][MAXLOG];
+	pair<int,int> maxw[MAXN][MAXLOG];
+	
+	void dfs(int u,int f=0,int deep=1)
+	{
+		dep[u]=deep;
+		fa[u][0]=f;
+		for(int i=0;i<(int)adj[u].size();i++)
+		{
+			int v=adj[u][i].v;
+			if(v!=f)
+			{
+				maxw[v][0]=make_pair(adj[u][i].w,adj[u][i].id);
+				dfs(v,u,deep+1);
+			}
+		}
+	}
+	void InitLCA()
+	{
+		dfs(1);
+		for(int j=1;j<MAXLOG;j++)
+			for(int i=1;i<=N;i++)
+				if(dep[i]-(1<<j)>0)
+				{
+					fa[i][j]=fa[fa[i][j-1]][j-1];
+					maxw[i][j]=max(maxw[i][j-1],maxw[fa[i][j-1]][j-1]);
+				}
+	}
+	void Query(int u,int v,int &lca,int &mxw,int &mxid)
+	{
+		if(dep[u]>dep[v])
+			swap(u,v);
+		pair<int,int> best(0,0);
+		for(int j=MAXLOG-1;j>=0;j--)
+			if(dep[v]-(1<<j)>=dep[u])
+			{
+				best=max(best,maxw[v][j]);
+				v=fa[v][j];
+			}
+		if(u==v)
+		{
+			lca=u;
+			mxw=best.first;
+			mxid=best.second;
+			return;
+		}
+		for(int j=MAXLOG-1;j>=0;j--)
+			if(dep[u]-(1<<j)>0&&fa[u][j]!=fa[v][j])
+			{
+				best=max(best,max(maxw[u][j],maxw[v][j]));
+				u=fa[u][j];
+				v=fa[v][j];
+			}
+		best=max(best,max(maxw[u][0],maxw[v][0]));
+		lca=fa[u][0];
+		mxw=best.first;
+		mxid=best.second;
+		return;
+	}
+}
+
 int main()
 {
-	int n,m,S;
-	scanf("%d%d",&n,&m);
-	for(int i=1;i<=m;i++)
+	scanf("%d%d",&N,&M);
+	for(int i=1;i<=M;i++)
 		scanf("%d",&E[i].w);
-	for(int i=1;i<=m;i++)
+	for(int i=1;i<=M;i++)
 		scanf("%d",&E[i].c);
-	for(int i=1;i<=m;i++)
+	for(int i=1;i<=M;i++)
 	{
 		scanf("%d%d",&E[i].u,&E[i].v);
 		E[i].id=i;
 	}
 	scanf("%d",&S);
-	sort(E+1,E+m+1);
-	int r1,r2;
-	long long W=0,ans;
-	for(int i=1;i<=m;i++)
-	{
-		r1=U.Find(E[i].u);
-		r2=U.Find(E[i].v);
-		if(r1!=r2)
+	
+	Kruskal();
+	ans=sumw-S/minc;
+	
+	LCA::InitLCA();
+	
+	for(int i=1;i<=M;i++)
+		if(!used[E[i].id]&&E[i].c<minc)
 		{
-			U.Union(r1,r2);
-			L.add_edge(E[i]);
-			used[E[i].id]=true;
-			W+=1LL*E[i].w;
-		}
-	}
-	L.Init(n);
-	sort(E+1,E+m+1,number);
-	ans=W;
-	int a=0,b=0,c=0,mxw,idw;
-	for(int i=1;i<=m;i++)
-	{
-		if(used[E[i].id])
-		{
-			if(ans>W-S/E[i].c)
+			int lca,mxw,id;
+			LCA::Query(E[i].u,E[i].v,lca,mxw,id);
+			long long tmp=sumw-mxw+E[i].w-S/E[i].c;
+			if(ans>tmp)
 			{
-				ans=W-S/E[i].c;
-				a=b=E[i].id;
-				c=E[i].w-S/E[i].c;
+				ans=tmp;
+				mincid=E[i].id;
+				delid=id;
 			}
 		}
-		else
-		{
-			L.LCA(E[i].u,E[i].v,mxw,idw);
-			if(ans>W-mxw+E[i].w-S/E[i].c)
-			{
-				ans=W-mxw+E[i].w-S/E[i].c;
-				a=idw;b=E[i].id;c=E[i].w-S/E[i].c;
-			}
-		}
-	}
+	
 	printf("%I64d\n",ans);
-	for(int i=1;i<=m;i++)
-		if(used[i])
+	for(int i=1;i<=M;i++)
+		if((used[E[i].id]&&delid!=E[i].id)||E[i].id==mincid)
 		{
-			if(i==a)
-				printf("%d %d\n",b,c);
-			else
-				printf("%d %d\n",i,E[i].w);
+			if(mincid==E[i].id)
+				E[i].w-=S/E[i].c;
+			printf("%d %d\n",E[i].id,E[i].w);
 		}
+	
 	return 0;
 }
