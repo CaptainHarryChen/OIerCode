@@ -1,168 +1,174 @@
 #include<cstdio>
-#include<vector>
+#include<cstring>
 #include<algorithm>
 using namespace std;
-const int MAXN=300005,MAXM=300005,MAXLOG=18;
+const int MAXN=100005,MAXM=300005,MAXLOG=20;
 
 struct Edge
 {
-	int u,v,len;
-	Edge(){}
-	Edge(int u,int v,int len):u(u),v(v),len(len){}
-	bool operator < (const Edge &t)const
-	{return len<t.len;}
-};
-struct AdjEdge
-{
-	int v,len,id;
-	AdjEdge(){}
-	AdjEdge(int v,int len,int id):v(v),len(len),id(id){}
+    int u,v,d;
+    Edge(){}
+    Edge(int _u,int _v,int _d)
+    {u=_u;v=_v;d=_d;}
+
+    bool operator < (const Edge &t)const
+    {return d<t.d;}
 };
 
-int dsu[MAXN];
-int Root(int x)
+struct DSU
 {
-	if(dsu[x]==0)
-		return x;
-	return dsu[x]=Root(dsu[x]);
-}
+    int fa[MAXN];
+    void Clear()
+    {memset(fa,0,sizeof fa);}
+    int Root(int x)
+    {
+        if(fa[x]==0)
+            return x;
+        return fa[x]=Root(fa[x]);
+    }
+    void Union(int x,int y)
+    {
+        int r1=Root(x),r2=Root(y);
+        if(r1!=r2)
+            fa[r1]=r2;
+    }
+};
 
-int n,m;
-vector<AdjEdge> adj[MAXN];
+struct Graph
+{
+    struct AdjEdge
+    {
+        int v,d;
+        AdjEdge *nxt;
+    }edges[MAXM*2],*adj[MAXN],*edges_it;
+
+    void Clear()
+    {
+        memset(adj,0,sizeof adj);
+        edges_it=edges;
+    }
+    void AddEdge(int u,int v,int d)
+    {
+        edges_it->v=v;
+        edges_it->d=d;
+        edges_it->nxt=adj[u];
+        adj[u]=edges_it++;
+    }
+};
+
+int N,M,K;
+long long sum,ans;
+Edge E[MAXM];
 bool used[MAXM];
-Edge edge[MAXM];
-int fa[MAXN][MAXLOG],mx[MAXN][MAXLOG],mx2[MAXN][MAXLOG],dep[MAXN];
-void AddEdge(int id)
+DSU linked;
+Graph Tree;
+
+void Kruskal_MakeTree()
 {
-	adj[edge[id].u].push_back(AdjEdge(edge[id].v,edge[id].len,id));
-	adj[edge[id].v].push_back(AdjEdge(edge[id].u,edge[id].len,id));
+    Tree.Clear();
+    ans=0;
+    sort(E+1,E+M+1);
+    for(int i=1;i<=M;i++)
+    {
+        int r1=linked.Root(E[i].u),r2=linked.Root(E[i].v);
+        if(r1==r2)
+            continue;
+        linked.Union(r1,r2);
+        Tree.AddEdge(E[i].u,E[i].v,E[i].d);
+        Tree.AddEdge(E[i].v,E[i].u,E[i].d);
+        used[i]=true;
+        sum+=E[i].d;
+    }
 }
 
-long long Kruskal()
+int dep[MAXN],fa[MAXN][MAXLOG],mx[MAXN][MAXLOG],mx2[MAXN][MAXLOG];
+
+void GetFirstTwo(int &res1,int &res2,int a=0,int b=0,int c=0,int d=0)
 {
-	long long ret=0;
-	for(int i=1;i<=m;i++)
-	{
-		int r1=Root(edge[i].u),r2=Root(edge[i].v);
-		if(r1==r2)
-			continue;
-		dsu[r1]=r2;
-		ret+=edge[i].len;
-		used[i]=true;
-		AddEdge(i);
-	}
-	return ret;
+    int tmp[]={a,b,c,d};
+    sort(tmp,tmp+4);
+    res1=tmp[3];
+    res2=0;
+    for(int k=2;k>=0;k--)
+        if(tmp[k]!=tmp[3])
+        {
+            res2=tmp[k];
+            return;
+        }
 }
 
-void dfs(int u,int f=0,int deep=1)
+void dfs(int u)
 {
-	dep[u]=deep;
-	for(int i=0;i<(int)adj[u].size();i++)
-	{
-		int v=adj[u][i].v;
-		if(v!=f)
-		{
-			fa[v][0]=u;
-			mx[v][0]=adj[u][i].len;
-			dfs(v,u,deep+1);
-		}
-	}
+    for(Graph::AdjEdge *e=Tree.adj[u];e;e=e->nxt)
+    {
+        int v=e->v;
+        if(v==fa[u][0])
+            continue;
+        fa[v][0]=u;
+        mx[v][0]=e->d;
+        mx2[v][0]=0;
+        dep[v]=dep[u]+1;
+        dfs(v);
+    }
 }
-void LCAmx(int u,int v,int &ret,int &ret2)
+void InitLCA()
 {
-	if(dep[u]>dep[v])
-		swap(u,v);
-	int tu=u,tv=v;
-	ret=0;
-	for(int j=MAXLOG-1;j>=0;j--)
-		if(dep[v]-(1<<j)>=dep[u])
-		{
-			ret=max(ret,mx[v][j]);
-			v=fa[v][j];
-		}
-	if(u!=v)
-	{
-		for(int j=MAXLOG-1;j>=0;j--)
-			if(dep[v]-(1<<j)>0&&fa[u][j]!=fa[v][j])
-			{
-				ret=max(ret,max(mx[u][j],mx[v][j]));
-				u=fa[u][j];
-				v=fa[v][j];
-			}
-		ret=max(ret,max(mx[u][0],mx[v][0]));
-	}
-	
-	u=tu;v=tv;
-	ret2=0;
-	for(int j=MAXLOG-1;j>=0;j--)
-		if(dep[v]-(1<<j)>=dep[u])
-		{
-			ret2=max(ret2,mx2[v][j]);
-			if(mx[v][j]<ret)
-				ret2=max(ret2,mx[v][j]);
-			v=fa[v][j];
-		}
-	if(u!=v)
-	{
-		for(int j=MAXLOG-1;j>=0;j--)
-			if(dep[v]-(1<<j)>0&&fa[u][j]!=fa[v][j])
-			{
-				if(mx[u][j]<ret)
-					ret2=max(ret2,mx[u][j]);
-				if(mx[v][j]<ret)
-					ret2=max(ret2,mx[v][j]);
-				ret2=max(ret2,max(mx2[u][j],mx2[v][j]));
-				u=fa[u][j];
-				v=fa[v][j];
-			}
-		if(mx[u][0]<ret)
-			ret2=max(ret2,mx[u][0]);
-		if(mx[v][0]<ret)
-			ret2=max(ret2,mx[v][0]);
-		ret2=max(ret2,max(mx2[u][0],mx2[v][0]));
-	}
+    dfs(1);
+    for(int j=1;j<MAXLOG;j++)
+        for(int i=1;i<=N;i++)
+            if(dep[i]-(1<<j)>=0)
+            {
+                fa[i][j]=fa[fa[i][j-1]][j-1];
+                mx[i][j]=max(mx[i][j-1],mx[fa[i][j-1]][j-1]);
+                GetFirstTwo(mx[i][j],mx2[i][j],mx[i][j-1],mx[fa[i][j-1]][j-1],mx2[i][j-1],mx2[fa[i][j-1]][j-1]);
+            }
+}
+pair<int,int> FindPathMax(int u,int v)
+{
+    pair<int,int> res=make_pair(0,0);
+    if(dep[u]>dep[v])
+        swap(u,v);
+    for(int j=MAXLOG-1;j>=0;j--)
+        if(dep[v]-(1<<j)>=dep[u])
+        {
+            GetFirstTwo(res.first,res.second,res.first,res.second,mx[v][j],mx2[v][j]);
+            v=fa[v][j];
+        }
+    if(u==v)
+        return res;
+    for(int j=MAXLOG-1;j>=0;j--)
+        if(dep[u]-(1<<j)>=0&&fa[u][j]!=fa[v][j])
+        {
+            GetFirstTwo(res.first,res.second,res.first,res.second,mx[u][j],mx2[u][j]);
+            GetFirstTwo(res.first,res.second,res.first,res.second,mx[v][j],mx2[v][j]);
+            u=fa[u][j];
+            v=fa[v][j];
+        }
+    GetFirstTwo(res.first,res.second,res.first,res.second,mx[u][0],mx2[u][0]);
+    return res;
 }
 
 int main()
 {
-	scanf("%d%d",&n,&m);
-	for(int i=1,x,y,z;i<=m;i++)
-	{
-		scanf("%d%d%d",&x,&y,&z);
-		edge[i]=Edge(x,y,z);
-	}
-	sort(edge+1,edge+m+1);
-	long long ans=Kruskal();
-	
-	dfs(1);
-	for(int j=1;j<MAXLOG;j++)
-		for(int i=1;i<=n;i++)
-			if(dep[i]-(1<<j)>0)
-			{
-				fa[i][j]=fa[fa[i][j-1]][j-1];
-				mx[i][j]=max(mx[i][j-1],mx[fa[i][j-1]][j-1]);
-				int tmp[10]={0,mx[i][j-1],mx2[i][j-1],mx[fa[i][j-1]][j-1],mx2[fa[i][j-1]][j-1]};
-				sort(tmp+1,tmp+5);
-				int k=4;
-				for(;tmp[k]==tmp[4]&&k>0;k--);
-				mx2[i][j]=tmp[k];
-			}
-	int delta=0x7FFFFFFF;
-	for(int i=1;i<=m;i++)
-		if(!used[i])
-		{
-			int a1,a2;
-			LCAmx(edge[i].u,edge[i].v,a1,a2);
-			if(a1==edge[i].len)
-				a1=a2;
-			if(a1==0)
-				continue;
-			int tmp=edge[i].len-a1;
-			if(tmp>0)
-				delta=min(delta,tmp);
-		}
-	ans+=delta;
-	printf("%lld\n",ans);
-	
-	return 0;
+    scanf("%d%d",&N,&M);
+    for(int i=1;i<=M;i++)
+        scanf("%d%d%d",&E[i].u,&E[i].v,&E[i].d);
+
+    Kruskal_MakeTree();
+    InitLCA();
+
+    ans=0x3F3F3F3F3F3F3F3FLL;
+    for(int i=1;i<=M;i++)
+        if(!used[i])
+        {
+            pair<int,int> mx=FindPathMax(E[i].u,E[i].v);
+            int delta=mx.first;
+            if(delta==E[i].d)
+                delta=mx.second;
+            delta=-delta+E[i].d;
+            ans=min(ans,sum+delta);
+        }
+    printf("%lld\n",ans);
+
+    return 0;
 }
