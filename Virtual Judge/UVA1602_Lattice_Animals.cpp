@@ -1,168 +1,177 @@
 #include<cstdio>
+#include<unordered_set>
 #include<algorithm>
-#include<iostream>
-#include<cstring>
 using namespace std;
-#define MAXN 10 
-#define MAX_HASH (long long)5000000
-const int dd[4][2]={{-1,0},{0,1},{1,0},{0,-1}};
+const int MAXN=10;
+const int dir[4][2]={{-1,0},{0,1},{1,0},{0,-1}};
+
 int ans[MAXN+1][MAXN+1][MAXN+1];
-typedef struct XY
+
+struct Block
 {
-	int x,y;
-	XY(){}
-	XY(int a,int b):x(a),y(b){}
-	bool operator<(XY t)const
-	{return x<t.x||(x==t.x&&y<t.y);}
-	bool operator==(XY t)const
-	{return x==t.x&&y==t.y;}
-}Block[11];
-void translation(Block p)
+    int n,x[MAXN],y[MAXN];
+    bool operator == (const Block &b)const
+    {
+        if(n!=b.n)
+            return false;
+        for(int i=0;i<n;i++)
+            if(x[i]!=b.x[i]||y[i]!=b.y[i])
+                return false;
+        return true;
+    }
+    void Sort()
+    {
+        pair<int,int> s[MAXN];
+        for(int i=0;i<n;i++)
+            s[i].first=x[i],s[i].second=y[i];
+        sort(s,s+n);
+        for(int i=0;i<n;i++)
+            x[i]=s[i].first,y[i]=s[i].second;
+    }
+    void Translate(int d,int t)
+    {
+        for(int i=0;i<n;i++)
+        {
+            x[i]+=dir[d][0]*t;
+            y[i]+=dir[d][1]*t;
+        }
+    }
+    void TranslateToUpLeft()
+    {
+        int mnx=20,mny=20;
+        for(int i=0;i<n;i++)
+        {
+            mnx=min(mnx,x[i]);
+            mny=min(mny,y[i]);
+        }
+        Translate(0,mnx);
+        Translate(3,mny);
+    }
+    void Rotate()
+    {
+        for(int i=0;i<n;i++)
+        {
+            int tx=x[i],ty=y[i];
+            x[i]=ty;
+            y[i]=-tx;
+        }
+        TranslateToUpLeft();
+    }
+    void Flip()
+    {
+        for(int i=0;i<n;i++)
+            x[i]=-x[i];
+        TranslateToUpLeft();
+    }
+    void print()
+    {
+        char s[MAXN+1][MAXN+1]={0};
+        printf("--DEBUG--\n");
+        for(int i=0;i<10;i++)
+            for(int j=0;j<10;j++)
+                s[i][j]='.';
+        for(int i=0;i<n;i++)
+            s[x[i]][y[i]]='#';
+        for(int i=0;i<10;i++)
+            puts(s[i]);
+    }
+};
+struct Hash
 {
-	sort(p+1,p+p[0].x+1);
-	int min_x=100,min_y=100;
-	for(int i=1;i<=p[0].x;i++)
-	{
-		min_x=min(min_x,p[i].x);
-		min_y=min(min_y,p[i].y);
-	}
-	for(int i=1;i<=p[0].x;i++)
-		p[i].x-=min_x,p[i].y-=min_y;
+    size_t operator () (const Block &a)const
+    {
+        size_t res=0;
+        for(int i=0;i<a.n;i++)
+            res=res*100u+(a.x[i]*10u+a.y[i]);
+        return res;
+    }
+};
+
+unordered_set<Block,Hash> have;
+
+Block A,B;
+bool used[MAXN*2+2][MAXN*2+2];
+
+bool check()
+{
+    B=A;
+    B.TranslateToUpLeft();
+    for(int i=0;i<4;i++)
+    {
+        B.Sort();
+        if(have.count(B))
+            return false;
+        B.Rotate();
+    }
+    B.Flip();
+    for(int i=0;i<4;i++)
+    {
+        B.Sort();
+        if(have.count(B))
+            return false;
+        B.Rotate();
+    }
+    B.Sort();
+    have.insert(B);
+    int mxx=-1,mxy=-1;
+    for(int i=0;i<B.n;i++)
+    {
+        mxx=max(mxx,B.x[i]);
+        mxy=max(mxy,B.y[i]);
+    }
+    if(mxx>mxy)
+        swap(mxx,mxy);
+    ans[B.n][mxx+1][mxy+1]++;
+    return true;
 }
-void rotate(Block p)
+
+void dfs(int step)
 {
-	for(int i=1;i<=p[0].x;i++)
-	{
-		swap(p[i].x,p[i].y);
-		p[i].y=-p[i].y;
-	}
-	translation(p);
+    A.n=step;
+    if(step&&!check())
+        return;
+    if(step==10)
+        return;
+    if(step==0)
+        for(int i=0;i<10;i++)
+            for(int j=0;j<10;j++)
+            {
+                used[i+10][j+10]=true;
+                A.x[step]=i;A.y[step]=j;
+                dfs(step+1);
+                used[i+10][j+10]=false;
+            }
+    short vis[MAXN*2+2]={0};
+    for(int i=0;i<step;i++)
+        for(int d=0;d<4;d++)
+        {
+            int x=A.x[i]+dir[d][0],y=A.y[i]+dir[d][1];
+            if(used[x+10][y+10]||((vis[x+10]>>(y+10))&1))
+                continue;
+            vis[x+10]|=(1<<(y+10));
+            used[x+10][y+10]=true;
+            A.x[step]=x;A.y[step]=y;
+            dfs(step+1);
+            used[x+10][y+10]=false;
+        }
 }
-void flip(Block p)
-{
-	for(int i=1;i<=p[0].x;i++)
-		p[i].y=-p[i].y;
-	translation(p);
-}
-struct HASH
-{
-	long long code;
-	HASH *next;
-	HASH(){code=-1;next=NULL;}
-	HASH(long long c):code(c),next(NULL){}
-}*head[MAX_HASH];
-long long Code(const Block p)
-{
-	long long code=0;
-	for(int i=2;i<=p[0].x;i++)
-		code=code*100+(p[i].x-p[i-1].x)*10+(p[i].y-p[i-1].y);
-	return code;
-}
-bool check_hash(long long code)
-{
-	for(HASH *h=head[code%MAX_HASH];h;h=h->next)
-		if(h->code==code)
-			return 1;
-	return 0;
-}
-void insert_hash(long long code)
-{
-	if(!head[code%MAX_HASH])
-		head[code%MAX_HASH]=new HASH(code);
-	else
-	{
-		HASH *h=new HASH(code);
-		h->next=head[code%MAX_HASH]->next;
-		head[code%MAX_HASH]->next=h;
-	}
-}
-bool mark(Block p)
-{
-	translation(p);
-	long long code=Code(p);
-	if(check_hash(code))
-		return 0;
-	for(int i=0;i<3;i++)
-	{
-		rotate(p);
-		code=Code(p);
-		if(check_hash(code))
-			return 0;
-	}
-	flip(p);
-	code=Code(p);
-	if(check_hash(code))
-		return 0;
-	for(int i=0;i<3;i++)
-	{
-		rotate(p);
-		code=Code(p);
-		if(check_hash(code))
-			return 0;
-	}
-	translation(p);
-	code=Code(p);
-	insert_hash(code);
-	return 1;
-}
-struct BLOCKS
-{
-	int cnt;
-	Block a[100000];
-}blocks[MAXN+1];
-bool find_point(XY t[],XY p)
-{
-	int x=lower_bound(t+1,t+t[0].x+1,p)-t;
-	if(x==t[0].x+1)
-		return 0;
-	if(t[x]==p)
-		return 1;
-	return 0;
-}
-void getans()
-{
-	XY p;
-	blocks[1].cnt=1;
-	blocks[1].a[1][0].x=1;
-	blocks[1].a[1][1]=XY(0,0);
-	mark(blocks[1].a[1]);
-	for(int i=2;i<=MAXN;i++)
-		for(int j=1;j<=blocks[i-1].cnt;j++)
-			for(int k=1;k<=blocks[i-1].a[j][0].x;k++)
-				for(int d=0;d<4;d++)
-				{
-					p=blocks[i-1].a[j][k];
-					p.x+=dd[d][0],p.y+=dd[d][1];
-					if(!find_point(blocks[i-1].a[j],p))
-					{
-						Block pp;
-						memcpy(pp,blocks[i-1].a[j],sizeof pp);
-						pp[++pp[0].x]=p;
-						if(mark(pp))
-							memcpy(blocks[i].a[++blocks[i].cnt],pp,sizeof pp);
-					}
-				}
-	for(int n=1;n<=MAXN;n++)
-		for(int w=1;w<=MAXN;w++)
-			for(int h=1;h<=MAXN;h++)
-				for(int i=1;i<=blocks[n].cnt;i++)
-				{
-					int max_x=0,max_y=0;
-					for(int j=1;j<=blocks[n].a[i][0].x;j++)
-					{
-						max_x=max(max_x,blocks[n].a[i][j].x);
-						max_y=max(max_y,blocks[n].a[i][j].y);
-					}
-					if((min(max_x,max_y)<w&&max(max_x,max_y)<h)
-						||(max(max_x,max_y)<w&&min(max_x,max_y)<h))
-						ans[n][w][h]++;
-				}
-}
+
 int main()
 {
-	getans();
-	int n,w,h;
-	while(~scanf("%d%d%d",&n,&w,&h))
-		printf("%d\n",ans[n][w][h]);
-	return 0;
+    //freopen("data.out","w",stdout);
+    dfs(0);
+    for(int k=1;k<=10;k++)
+        for(int i=1;i<=10;i++)
+            for(int j=1;j<=10;j++)
+                ans[k][i][j]+=ans[k][i-1][j]+ans[k][i][j-1]-ans[k][i-1][j-1];
+
+    int n,w,h;
+    while(scanf("%d%d%d",&n,&w,&h)!=EOF)
+    {
+        if(w>h)
+            swap(w,h);
+        printf("%d\n",ans[n][w][h]);
+    }
+
+    return 0;
 }
