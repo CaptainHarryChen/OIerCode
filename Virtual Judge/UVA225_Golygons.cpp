@@ -1,72 +1,79 @@
 #include<cstdio>
+#include<cmath>
 #include<cstring>
-#define SIZE 450
-#define ZERO 220
-#define MAXN 22
-const int dd[4][2]={{1,0},{0,1},{0,-1},{-1,0}};
-const char str_d[5]="ensw";
-int T,n,m,path[MAXN],cnt;
-bool vis[SIZE][SIZE],p[SIZE][SIZE];
-bool check(int x,int y,int d,int s)
+using namespace std;
+const int dir[4][2]={{1,0},{0,1},{0,-1},{-1,0}};
+const char id[5]="ensw";
+
+bool wall[400][400],vis[400][400];
+int cnt,n,k;
+int ans[400][22];
+
+void dfs(int x,int y,int step)
 {
-	for(int i=1;i<=s;i++)
-	{
-		x+=dd[d][0],y+=dd[d][1];
-		if(p[x][y])
-			return 0;
-	}
-	return 1;
+    int h=0;
+    if((n-step+1)&1)
+        h=(n+step)*(n-step+2)/4;
+    else
+        h=(n+step+1)*(n-step+1)/4;
+    if(h<abs(x)||h<abs(y))
+        return;
+    h=(n+step)*(n-step+1)/2;
+    if(h<abs(x)+abs(y))
+        return;
+    if(step>n)
+    {
+        for(int i=1;i<=n;i++)
+            printf("%c",id[ans[cnt][i]]);
+        puts("");
+        memcpy(ans[cnt+1],ans[cnt],sizeof ans[cnt]);
+        cnt++;
+        return;
+    }
+    for(int d=0;d<4;d++)
+    {
+        if(step>1&&((dir[ans[cnt][step-1]][0]+dir[d][0])%2==0||(dir[ans[cnt][step-1]][1]+dir[d][1])%2==0))
+            continue;
+        bool flag=true;
+        int tx=x,ty=y;
+        for(int i=1;i<=step;i++)
+        {
+            tx+=dir[d][0];ty+=dir[d][1];
+            if(wall[tx+200][ty+200])
+            {
+                flag=false;
+                break;
+            }
+        }
+        if(!flag)
+            continue;
+        if(vis[tx+200][ty+200])
+            continue;
+        ans[cnt][step]=d;
+        vis[tx+200][ty+200]=true;
+        dfs(tx,ty,step+1);
+        vis[tx+200][ty+200]=false;
+    }
 }
-void dfs(int a,int b,int k)
-{
-	if(k>=n)
-	{
-		if(a==ZERO&&b==ZERO)
-		{
-			for(int i=0;i<k;i++)
-				printf("%c",str_d[path[i]]);
-			printf("\n");
-			cnt++;
-		}
-		return;
-	}
-	for(int i=0;i<4;i++)
-	{
-		if((path[k-1]==0||path[k-1]==3)&&(i==0||i==3))continue;
-		if((path[k-1]==1||path[k-1]==2)&&(i==1||i==2))continue;
-		if(check(a,b,i,k+1))
-		{
-			if(vis[a+dd[i][0]*(k+1)][b+dd[i][1]*(k+1)])continue;
-			vis[a+dd[i][0]*(k+1)][b+dd[i][1]*(k+1)]=1;
-			path[k]=i;
-			dfs(a+dd[i][0]*(k+1),b+dd[i][1]*(k+1),k+1);
-			vis[a+dd[i][0]*(k+1)][b+dd[i][1]*(k+1)]=0;
-		}
-	}
-}
+
 int main()
 {
-	scanf("%d",&T);
-	while(T--)
-	{
-		scanf("%d%d",&n,&m);
-		memset(vis,0,sizeof vis);
-		memset(p,0,sizeof p);
-		for(int i=1,a,b;i<=m;i++)
-		{
-			scanf("%d%d",&a,&b);
-			p[a+ZERO][b+ZERO]=1;
-		}
-		cnt=0;
-		for(int i=0;i<4;i++)
-			if(!p[dd[i][0]+ZERO][dd[i][1]+ZERO])
-			{
-				vis[dd[i][0]+ZERO][dd[i][1]+ZERO]=1;
-				path[0]=i;
-				dfs(dd[i][0]+ZERO,dd[i][1]+ZERO,1);
-				vis[dd[i][0]+ZERO][dd[i][1]+ZERO]=0;
-			}
-		printf("Found %d golygon(s).\n\n",cnt);
-	}
-	return 0;
+    int T;
+    scanf("%d",&T);
+    while(T--)
+    {
+        scanf("%d%d",&n,&k);
+        memset(wall,0,sizeof wall);
+        for(int i=1;i<=k;i++)
+        {
+            int x,y;
+            scanf("%d%d",&x,&y);
+            wall[x+200][y+200]=true;
+        }
+        cnt=1;
+        dfs(0,0,1);
+        cnt--;
+        printf("Found %d golygon(s).\n\n",cnt);
+    }
+    return 0;
 }
