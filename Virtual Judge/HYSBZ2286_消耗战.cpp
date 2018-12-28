@@ -1,153 +1,172 @@
 #include<cstdio>
+#include<vector>
 #include<algorithm>
-const int MAXN=500005;
+using namespace std;
+const int MAXN=250005,MAXLOG=20;
+
 struct Edge
 {
-	int to,len;
-	Edge *nxt;
-	Edge(){}
-	Edge(int _t,int _l){to=_t;len=_l;nxt=NULL;}	
+    int v,l;
+    Edge(){}
+    Edge(int v,int l):v(v),l(l){}
 };
-Edge edges[MAXN<<1],*E[MAXN],*cur=edges;
-void AddEdge(Edge *E[],Edge *&cur,int u,int v,int l)
+
+int n,m;
+vector<Edge> adj[MAXN];
+
+int vfa[MAXN];
+vector<int> vson[MAXN];
+
+int lev[MAXN],dfn[MAXN],dfc;
+int fa[MAXN][MAXLOG],mn[MAXN][MAXLOG];
+
+void dfs(int u)
 {
-	*cur=Edge(v,l);
-	cur->nxt=E[u];
-	E[u]=cur;
-	cur++;
-	*cur=Edge(u,l);
-	cur->nxt=E[v];
-	E[v]=cur;
-	cur++;
+    dfn[u]=++dfc;
+    for(int i=0;i<(int)adj[u].size();i++)
+    {
+        int v=adj[u][i].v;
+        if(v==fa[u][0])
+            continue;
+        fa[v][0]=u;
+        mn[v][0]=adj[u][i].l;
+        lev[v]=lev[u]+1;
+        dfs(v);
+    }
 }
-long long dis[MAXN];
-int dfn[MAXN],dfnn=0;
-namespace LCA
+
+void InitLCA()
 {
-	int n;
-	int fa[MAXN][20],lev[MAXN];
-	void Init(int _n)
-	{
-		n=_n;
-		for(int j=1;j<20;j++)
-			for(int i=1;i<=n;i++)
-				if(lev[i]>(1<<j))
-					fa[i][j]=fa[fa[i][j-1]][j-1];
-	}
-	int Query(int a,int b)
-	{
-		if(lev[a]>lev[b])
-			std::swap(a,b);
-		for(int i=19;i>=0;i--)
-			if(lev[b]-(1<<i)>=lev[a])
-				b=fa[b][i];
-		if(a==b)return a;
-		for(int i=19;i>=0;i--)
-			if(lev[a]>(1<<i)&&fa[a][i]!=fa[b][i])
-				a=fa[a][i],b=fa[b][i];
-		return fa[a][0];
-	}
+    for(int j=1;(1<<j)<=n;j++)
+        for(int i=1;i<=n;i++)
+            if(lev[i]-(1<<j)>=0)
+            {
+                fa[i][j]=fa[fa[i][j-1]][j-1];
+                mn[i][j]=min(mn[i][j-1],mn[fa[i][j-1]][j-1]);
+            }
 }
-namespace VT
+int LCA(int a,int b)
 {
-	int stack[MAXN],top;
-	Edge edges[MAXN<<1],*node[MAXN],*cur;
-	bool vnode_cmp(int a,int b)
-	{return dfn[a]<dfn[b];}
-	void BuildTree(int vnode[],int n)
-	{
-		std::sort(vnode,vnode+n,vnode_cmp);
-		top=0;
-		cur=edges;
-		stack[top++]=vnode[0];
-		for(int i=1;i<n;i++)
-		{
-			int x=vnode[i],p=stack[top-1];
-			int lca=LCA::Query(p,x);
-			if(lca==p)
-				stack[top++]=x;
-			else
-			{
-				int q=top-1;
-				while(q>=0&&LCA::lev[stack[q]]>LCA::lev[lca])q--;
-				q++;
-				for(int j=q;j<top-1;j++)
-					AddEdge(node,cur,stack[j],stack[j+1],0);
-				int _q=stack[q];
-				if(q==0)
-					stack[0]=lca,top=1;
-				else if(stack[q-1]!=lca)
-					stack[q]=lca,top=q+1;
-				else
-					top=q;
-				AddEdge(node,cur,_q,lca,0);
-				node[x]=NULL;
-				stack[top++]=x;
-			}
-		}
-		for(int j=0;j<top-1;j++)
-			AddEdge(node,cur,stack[j],stack[j+1],0);
-	}
+    if(lev[a]>lev[b])
+        swap(a,b);
+    for(int j=MAXLOG-1;j>=0;j--)
+        if(lev[b]-(1<<j)>=lev[a])
+            b=fa[b][j];
+    if(a==b)
+        return a;
+    for(int j=MAXLOG-1;j>=0;j--)
+        if(lev[a]-(1<<j)>=0&&fa[a][j]!=fa[b][j])
+            a=fa[a][j],b=fa[b][j];
+    return fa[a][0];
 }
-void DFS_init(int now,int la=0,int level=1)
+int GetMin(int a,int len)
 {
-	using namespace VT;
-	using namespace LCA;
-	dfn[now]=++dfnn;
-	lev[now]=level;
-	if(la==0)dis[now]=0x7FFFFFFFFFFFFFFFLL;
-	for(Edge *p=E[now];p;p=p->nxt)
-		if(p->to!=la)
-		{
-			fa[p->to][0]=now;
-			dis[p->to]=std::min((long long)p->len,dis[now]);
-			DFS_init(p->to,now,level+1);
-		}
+    int res=0x3F3F3F3F;
+    for(int j=MAXLOG-1;j>=0;j--)
+        if((1<<j)<=len)
+        {
+            res=min(res,mn[a][j]);
+            a=fa[a][j];
+            len-=(1<<j);
+        }
+    return res;
 }
-bool has_res[MAXN];
-int res[MAXN];
-long long DP(int id,int la=0)
+
+bool dfncmp(int a,int b)
+{return dfn[a]<dfn[b];}
+
+int k,h[MAXN];
+bool flag[MAXN];
+
+int stk[MAXN*2],tp;
+int opseq[MAXN*2],cnt;
+
+void AddVTEdge(int a,int b)
 {
-	using namespace VT;
-	long long ret=0;
-	for(Edge *p=node[id];p;p=p->nxt)
-		if(p->to!=la)
-		{
-			long long temp=DP(p->to,id);
-			if(has_res[p->to])
-				ret+=dis[p->to];
-			else
-				ret+=std::min(dis[p->to],temp);
-		}
-	node[id]=NULL;
-	return ret;
+    vfa[b]=a;
+    vson[a].push_back(b);
+    opseq[++cnt]=a;
+    //printf("%d->%d\n",a,b);
 }
+
+long long DP(int u)
+{
+    long long res=0x3F3F3F3F3F3F3F3FLL;
+    if(u!=1)
+        res=GetMin(u,lev[u]-lev[vfa[u]]);
+    if(flag[u])
+        return res;
+    long long tmp=0;
+    for(int i=0;i<(int)vson[u].size();i++)
+        tmp+=DP(vson[u][i]);
+    res=min(res,tmp);
+    return res;
+}
+
+void solve()
+{
+    for(int i=1;i<=k;i++)
+        flag[h[i]]=true;
+    flag[1]=false;
+    sort(h+1,h+k+1,dfncmp);
+    cnt=0;
+    stk[tp=1]=h[1];
+    for(int i=2;i<=k;i++)
+    {
+        int l=LCA(h[i],stk[tp]);
+        while(tp)
+        {
+            if(stk[tp]==l)
+                break;
+            if(tp==1||lev[stk[tp-1]]<lev[l])
+            {
+                AddVTEdge(l,stk[tp]);
+                tp--;
+                stk[++tp]=l;
+                break;
+            }
+            AddVTEdge(stk[tp-1],stk[tp]);
+            tp--;
+        }
+        stk[++tp]=h[i];
+    }
+    while(tp>1)
+    {
+        AddVTEdge(stk[tp-1],stk[tp]);
+        tp--;
+    }
+
+    printf("%lld\n",DP(1));
+
+    for(int i=1;i<=cnt;i++)
+        vson[opseq[i]].clear();
+    for(int i=1;i<=k;i++)
+        flag[h[i]]=false;
+}
+
 int main()
 {
-	int n,m,u,v,l,k;
     scanf("%d",&n);
-	for(int i=1;i<n;i++)
-	{
-		scanf("%d%d%d",&u,&v,&l);
-		AddEdge(E,cur,u,v,l);
-	}
-	DFS_init(1);
-	LCA::Init(n);
-	scanf("%d",&m);
-	for(int i=1;i<=m;i++)
-	{
-		scanf("%d",&k);
-		res[0]=1;
-		for(int j=1;j<=k;j++)
-		{
-			scanf("%d",res+j);
-			has_res[res[j]]=1;
-		}
-		k++;
-		VT::BuildTree(res,k);
-		printf("%lld\n",DP(1));
-		for(int j=1;j<=k;j++)
-			has_res[res[j]]=0;
-	}
-	return 0;
+    for(int i=1;i<n;i++)
+    {
+        int a,b,c;
+        scanf("%d%d%d",&a,&b,&c);
+        adj[a].push_back(Edge(b,c));
+        adj[b].push_back(Edge(a,c));
+    }
+
+    dfs(1);
+    InitLCA();
+
+    scanf("%d",&m);
+    for(int i=1;i<=m;i++)
+    {
+        scanf("%d",&k);
+        for(int j=1;j<=k;j++)
+            scanf("%d",&h[j]);
+        h[++k]=1;
+        solve();
+    }
+
+    return 0;
 }
