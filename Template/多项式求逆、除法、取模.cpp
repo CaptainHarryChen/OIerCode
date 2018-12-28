@@ -1,3 +1,4 @@
+//CodeChef RNG
 #include<cstdio>
 #include<cstring>
 #include<algorithm>
