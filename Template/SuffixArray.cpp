@@ -48,7 +48,6 @@ void GetH()
 
 int main()
 {
-	freopen("SuffixArray_data.in","r",stdin);
 	scanf("%s",str+1);
 	n=strlen(str+1);
 	GetSa();
