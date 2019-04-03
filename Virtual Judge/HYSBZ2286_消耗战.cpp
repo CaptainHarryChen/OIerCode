@@ -1,117 +1,106 @@
 #include<cstdio>
 #include<vector>
+#include<cstring>
 #include<algorithm>
 using namespace std;
 const int MAXN=250005,MAXLOG=20;
 
 struct Edge
 {
-    int v,l;
+    int v,len;
     Edge(){}
-    Edge(int v,int l):v(v),l(l){}
+    Edge(int a,int b):v(a),len(b){}
 };
 
-int n,m;
-vector<Edge> adj[MAXN];
+int n,h[MAXN];
+vector<Edge> T[MAXN],VT[MAXN];
+int fa[MAXN][MAXLOG],mn[MAXN][MAXLOG],lev[MAXN],dfn[MAXN],dfc;
+bool flag[MAXN];
 
-int vfa[MAXN];
-vector<int> vson[MAXN];
-
-int lev[MAXN],dfn[MAXN],dfc;
-int fa[MAXN][MAXLOG],mn[MAXN][MAXLOG];
+void AddEdge(vector<Edge> G[],int u,int v,int w)
+{
+    G[u].push_back(Edge(v,w));
+    G[v].push_back(Edge(u,w));
+}
 
 void dfs(int u)
 {
     dfn[u]=++dfc;
-    for(int i=0;i<(int)adj[u].size();i++)
+    for(int i=0;i<(int)T[u].size();i++)
     {
-        int v=adj[u][i].v;
+        int v=T[u][i].v;
         if(v==fa[u][0])
             continue;
         fa[v][0]=u;
-        mn[v][0]=adj[u][i].l;
+        mn[v][0]=T[u][i].len;
         lev[v]=lev[u]+1;
         dfs(v);
     }
 }
-
-void InitLCA()
+void Init()
 {
-    for(int j=1;(1<<j)<=n;j++)
-        for(int i=1;i<=n;i++)
-            if(lev[i]-(1<<j)>=0)
+    dfs(1);
+    for(int j=1;j<MAXLOG;j++)
+        for(int u=1;u<=n;u++)
+            if(lev[u]-(1<<j)>=0)
             {
-                fa[i][j]=fa[fa[i][j-1]][j-1];
-                mn[i][j]=min(mn[i][j-1],mn[fa[i][j-1]][j-1]);
+                fa[u][j]=fa[fa[u][j-1]][j-1];
+                mn[u][j]=min(mn[u][j-1],mn[fa[u][j-1]][j-1]);
             }
 }
-int LCA(int a,int b)
+int LCA(int u,int v)
 {
-    if(lev[a]>lev[b])
-        swap(a,b);
+    if(lev[u]>lev[v])
+        swap(u,v);
     for(int j=MAXLOG-1;j>=0;j--)
-        if(lev[b]-(1<<j)>=lev[a])
-            b=fa[b][j];
-    if(a==b)
-        return a;
+        if(lev[v]-(1<<j)>=lev[u])
+            v=fa[v][j];
+    if(u==v)
+        return u;
     for(int j=MAXLOG-1;j>=0;j--)
-        if(lev[a]-(1<<j)>=0&&fa[a][j]!=fa[b][j])
-            a=fa[a][j],b=fa[b][j];
-    return fa[a][0];
+        if(lev[v]-(1<<j)>=0&&fa[u][j]!=fa[v][j])
+            u=fa[u][j],v=fa[v][j];
+    return fa[u][0];
 }
-int GetMin(int a,int len)
+int GetMin(int u,int v)
 {
+    if(lev[u]<lev[v])
+        swap(u,v);
     int res=0x3F3F3F3F;
     for(int j=MAXLOG-1;j>=0;j--)
-        if((1<<j)<=len)
+        if(lev[u]-(1<<j)>=lev[v])
         {
-            res=min(res,mn[a][j]);
-            a=fa[a][j];
-            len-=(1<<j);
+            res=min(res,mn[u][j]);
+            u=fa[u][j];
         }
     return res;
 }
-
-bool dfncmp(int a,int b)
-{return dfn[a]<dfn[b];}
-
-int k,h[MAXN];
-bool flag[MAXN];
-
-int stk[MAXN*2],tp;
-int opseq[MAXN*2],cnt;
-
-void AddVTEdge(int a,int b)
+long long DP(int u,int f=0,long long len=0x3F3F3F3F3F3F3F3FLL)
 {
-    vfa[b]=a;
-    vson[a].push_back(b);
-    opseq[++cnt]=a;
-    //printf("%d->%d\n",a,b);
-}
-
-long long DP(int u)
-{
-    long long res=0x3F3F3F3F3F3F3F3FLL;
-    if(u!=1)
-        res=GetMin(u,lev[u]-lev[vfa[u]]);
-    if(flag[u])
-        return res;
-    long long tmp=0;
-    for(int i=0;i<(int)vson[u].size();i++)
-        tmp+=DP(vson[u][i]);
-    res=min(res,tmp);
+    long long res=len,tmp=0;
+    for(int i=0;i<(int)VT[u].size();i++)
+    {
+        int v=VT[u][i].v;
+        if(v==f)
+            continue;
+        tmp+=DP(v,u,VT[u][i].len);
+    }
+    if(!flag[u])
+        res=min(res,tmp);
+    VT[u].clear();
     return res;
 }
-
-void solve()
+bool dfncmp(int a,int b)
+{return dfn[a]<dfn[b];}
+void Solve(int m)
 {
-    for(int i=1;i<=k;i++)
+    static int stk[MAXN],tp;
+    for(int i=1;i<=m;i++)
         flag[h[i]]=true;
-    flag[1]=false;
-    sort(h+1,h+k+1,dfncmp);
-    cnt=0;
-    stk[tp=1]=h[1];
-    for(int i=2;i<=k;i++)
+    h[++m]=1;
+    sort(h+1,h+m+1,dfncmp);
+    tp=1;stk[1]=h[1];
+    for(int i=2;i<=m;i++)
     {
         int l=LCA(h[i],stk[tp]);
         while(tp)
@@ -120,27 +109,23 @@ void solve()
                 break;
             if(tp==1||lev[stk[tp-1]]<lev[l])
             {
-                AddVTEdge(l,stk[tp]);
+                AddEdge(VT,stk[tp],l,GetMin(stk[tp],l));
                 tp--;
                 stk[++tp]=l;
                 break;
             }
-            AddVTEdge(stk[tp-1],stk[tp]);
+            AddEdge(VT,stk[tp-1],stk[tp],GetMin(stk[tp-1],stk[tp]));
             tp--;
         }
         stk[++tp]=h[i];
     }
     while(tp>1)
     {
-        AddVTEdge(stk[tp-1],stk[tp]);
+        AddEdge(VT,stk[tp-1],stk[tp],GetMin(stk[tp-1],stk[tp]));
         tp--;
     }
-
     printf("%lld\n",DP(1));
-
-    for(int i=1;i<=cnt;i++)
-        vson[opseq[i]].clear();
-    for(int i=1;i<=k;i++)
+    for(int i=1;i<=m;i++)
         flag[h[i]]=false;
 }
 
@@ -149,23 +134,20 @@ int main()
     scanf("%d",&n);
     for(int i=1;i<n;i++)
     {
-        int a,b,c;
-        scanf("%d%d%d",&a,&b,&c);
-        adj[a].push_back(Edge(b,c));
-        adj[b].push_back(Edge(a,c));
+        int u,v,w;
+        scanf("%d%d%d",&u,&v,&w);
+        AddEdge(T,u,v,w);
     }
-
-    dfs(1);
-    InitLCA();
-
+    Init();
+    int m;
     scanf("%d",&m);
-    for(int i=1;i<=m;i++)
+    while(m--)
     {
+        int k;
         scanf("%d",&k);
-        for(int j=1;j<=k;j++)
-            scanf("%d",&h[j]);
-        h[++k]=1;
-        solve();
+        for(int i=1;i<=k;i++)
+            scanf("%d",&h[i]);
+        Solve(k);
     }
 
     return 0;
